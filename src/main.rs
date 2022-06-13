@@ -13,8 +13,14 @@ mod sys {
   pub mod init;
 }
 mod app {
+  pub mod admin {
+    pub mod index;
+  }
   pub mod index {
     pub mod index;
+  }
+  pub mod login {
+    pub mod admin;
   }
   pub mod action;
   pub mod db;

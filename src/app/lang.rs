@@ -1,23 +1,35 @@
 use std::{rc::Rc, cell::RefCell, collections::HashMap};
 
+use crate::sys::go::i18n::LangItem;
+
 use super::{action::Data, session::Session};
 
 // Copy data with translation
 pub struct Lang {
-  pub lang_id: u8,                                                                                              // User lang_id 
+  pub lang_id: u8,                                                                                                  // User lang_id 
   session: Rc<RefCell<Session>>,                                                                                // Session for store user selected lang_id
-  pub i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>,   // Global ref to tranlations
-  pub data: Option<Rc<RefCell<HashMap<String, String>>>>,                                                       // Local copy of translation for web controller
+  i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>,       // Global ref to tranlations
+  data: Option<Rc<RefCell<HashMap<String, String>>>>,                                                           // Local copy of translation for web controller
+  langs: Rc<RefCell<HashMap<u8, LangItem>>>,                                                                    // List of enable langs
+  sort: Rc<RefCell<Vec<LangItem>>>,                                                                             // Sorted list of langs
+
 }
 
 impl Lang {
   // Constructor
-  pub fn new(i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, session: Rc<RefCell<Session>>) -> Lang {
+  pub fn new(
+    i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
+    session: Rc<RefCell<Session>>, 
+    langs: Rc<RefCell<HashMap<u8, LangItem>>>,
+    sort: Rc<RefCell<Vec<LangItem>>>,
+  ) -> Lang {
     Lang {
       lang_id: Lang::default(),
       session,
       i18n,
       data: None,
+      langs,
+      sort,
     }
   }
 
@@ -56,6 +68,20 @@ impl Lang {
     0
   }
 
+  // Get current language code
+  pub fn get_code(&self) -> String {
+    self.langs.borrow().get(&self.lang_id).unwrap().code.clone()
+  }
+
+  pub fn get_lang_view(&self, lang_id: u8) -> Data {
+    let sort = self.sort.borrow();
+    let mut vec= Vec::with_capacity(sort.len());
+    for lang in sort.iter() {
+      vec.push(lang.clone());
+    }
+    Data::VecLang((lang_id, vec))
+  }
+
   // Load local translation for current controller
   pub fn load(&mut self, module: &String, class: &String) {
     let i = self.i18n.borrow();
@@ -73,16 +99,16 @@ impl Lang {
     match &self.data {
       Some(val) => {
         match val.borrow().get(key) {
-          Some(v) => self.htmlencode(v),
-          None => self.htmlencode(key),
+          Some(v) => Lang::htmlencode(v),
+          None => Lang::htmlencode(key),
         }
       },
-      None => self.htmlencode(key),
+      None => Lang::htmlencode(key),
     }
   }
 
   // Replace special html text
-  fn htmlencode(&self, text: &String) -> String {
+  pub fn htmlencode(text: &String) -> String {
     let mut text = text.replace("&", "&amp;");
     text = text.replace("\"", "&quot;");
     text = text.replace("'", "&apos;");

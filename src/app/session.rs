@@ -35,11 +35,15 @@ impl Session {
       let request_load = request.borrow();
       session = match request_load.cookie.get(&key) {
         Some(s) => {
-          let rx = Regex::new(r"^[a-f0-9]{128}$").unwrap();
-          if rx.is_match(s) {
-            s.to_owned()
-          } else {
-            "".to_string()
+          match Regex::new(r"^[a-f0-9]{128}$") {
+            Ok(rx) => {
+              if rx.is_match(s) {
+                s.to_owned()
+              } else {
+                "".to_string()
+              }
+            },
+            Err(_) => "".to_string(),
           }
         },
         None => "".to_string(),
@@ -97,26 +101,26 @@ impl Session {
   }
 
   // Delete a session date
-  pub fn del(&mut self, key: &String) {
-    self.change = true;
-    self.data.remove(key);
-  }
+  // pub fn del(&mut self, key: &String) {
+  //   self.change = true;
+  //   self.data.remove(key);
+  // }
 
   // Is set a session date
-  pub fn is_key(&mut self, key: &String) -> bool {
-    if key == "user_id" {
-      return true;
-    }
-    return self.data.contains_key(key);
-  }
+  // pub fn is_key(&mut self, key: &String) -> bool {
+  //   if key == "user_id" {
+  //     return true;
+  //   }
+  //   return self.data.contains_key(key);
+  // }
 
   // Clear the all session date
-  pub fn clear(&mut self) {
-    if self.data.len() > 0 || self.user_id > 0 {
-      self.data.clear();
-      self.change = true;
-    }
-  }
+  // pub fn clear(&mut self) {
+  //   if self.data.len() > 0 || self.user_id > 0 {
+  //     self.data.clear();
+  //     self.change = true;
+  //   }
+  // }
 
   // Load user session date from database 
   fn load(&mut self) {
@@ -191,21 +195,23 @@ impl Session {
   // Encode user data to json
   fn set_value(&self, val: &Data) -> Value {
     match val {
-      Data::None | Data::I128(_) | Data::U128(_) | Data::Raw(_) => Value::Null,
-      Data::I8(v) => Value::Number(Number::from(v.clone())),
+      Data::None 
+      // | Data::I128(_) | Data::U128(_) | Data::Raw(_) 
+      | Data::VecLang(_) => Value::Null,
+      // Data::I8(v) => Value::Number(Number::from(v.clone())),
       Data::U8(v) => Value::Number(Number::from(v.clone())),
-      Data::I16(v) => Value::Number(Number::from(v.clone())),
-      Data::U16(v) => Value::Number(Number::from(v.clone())),
-      Data::I32(v) => Value::Number(Number::from(v.clone())),
-      Data::U32(v) => Value::Number(Number::from(v.clone())),
+      // Data::I16(v) => Value::Number(Number::from(v.clone())),
+      // Data::U16(v) => Value::Number(Number::from(v.clone())),
+      // Data::I32(v) => Value::Number(Number::from(v.clone())),
+      // Data::U32(v) => Value::Number(Number::from(v.clone())),
       Data::I64(v) => Value::Number(Number::from(v.clone())),
       Data::U64(v) => Value::Number(Number::from(v.clone())),
-      Data::ISize(v) => Value::Number(Number::from(v.clone())),
-      Data::USize(v) => Value::Number(Number::from(v.clone())),
-      Data::F32(v) => Value::Number(Number::from_f64(v.clone().into()).unwrap()),
+      // Data::ISize(v) => Value::Number(Number::from(v.clone())),
+      // Data::USize(v) => Value::Number(Number::from(v.clone())),
+      // Data::F32(v) => Value::Number(Number::from_f64(v.clone().into()).unwrap()),
       Data::F64(v) => Value::Number(Number::from_f64(v.clone()).unwrap()),
       Data::Bool(v) => Value::Bool(v.clone()),
-      Data::Char(v) => Value::String(v.to_string()),
+      // Data::Char(v) => Value::String(v.to_string()),
       Data::String(v) => Value::String(v.clone()),
       Data::Vec(v) => {
         let mut val: Vec<Value> = Vec::with_capacity(v.len());
@@ -214,34 +220,34 @@ impl Session {
         }
         Value::Array(val)
       },
-      Data::MapU8(v) => {
-        let mut val: Map<String, Value> = Map::with_capacity(v.len());
-        for (key, vl) in v {
-          val.insert(key.to_string(), self.set_value(vl));
-        }
-        Value::Object(val)
-      },
-      Data::MapU16(v) => {
-        let mut val: Map<String, Value> = Map::with_capacity(v.len());
-        for (key, vl) in v {
-          val.insert(key.to_string(), self.set_value(vl));
-        }
-        Value::Object(val)
-      },
-      Data::MapU32(v) => {
-        let mut val: Map<String, Value> = Map::with_capacity(v.len());
-        for (key, vl) in v {
-          val.insert(key.to_string(), self.set_value(vl));
-        }
-        Value::Object(val)
-      },
-      Data::MapU64(v) => {
-        let mut val: Map<String, Value> = Map::with_capacity(v.len());
-        for (key, vl) in v {
-          val.insert(key.to_string(), self.set_value(vl));
-        }
-        Value::Object(val)
-      },
+      // Data::MapU8(v) => {
+      //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
+      //   for (key, vl) in v {
+      //     val.insert(key.to_string(), self.set_value(vl));
+      //   }
+      //   Value::Object(val)
+      // },
+      // Data::MapU16(v) => {
+      //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
+      //   for (key, vl) in v {
+      //     val.insert(key.to_string(), self.set_value(vl));
+      //   }
+      //   Value::Object(val)
+      // },
+      // Data::MapU32(v) => {
+      //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
+      //   for (key, vl) in v {
+      //     val.insert(key.to_string(), self.set_value(vl));
+      //   }
+      //   Value::Object(val)
+      // },
+      // Data::MapU64(v) => {
+      //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
+      //   for (key, vl) in v {
+      //     val.insert(key.to_string(), self.set_value(vl));
+      //   }
+      //   Value::Object(val)
+      // },
       Data::Map(v) => {
         let mut val: Map<String, Value> = Map::with_capacity(v.len());
         for (key, vl) in v {
@@ -249,13 +255,13 @@ impl Session {
         }
         Value::Object(val)
       },
-      Data::Tree(v) => {
-        let mut val: Map<String, Value> = Map::with_capacity(v.len());
-        for (key, vl) in v {
-          val.insert(key.to_string(), self.set_value(vl));
-        }
-        Value::Object(val)
-      },
+      // Data::Tree(v) => {
+      //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
+      //   for (key, vl) in v {
+      //     val.insert(key.to_string(), self.set_value(vl));
+      //   }
+      //   Value::Object(val)
+      // },
     }
   }
 

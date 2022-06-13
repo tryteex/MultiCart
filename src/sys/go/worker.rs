@@ -78,7 +78,7 @@ impl Worker {
       // Indication of read data
       if !i18n.load {
         // Load enable languages
-        let text = format!("SELECT lang_id, lang, code, name FROM lang WHERE enable");
+        let text = format!("SELECT lang_id, lang, code, name FROM lang WHERE enable ORDER BY sort");
         match sql.query(&text, &[]) {
           Ok(res) => {
             for row in res {
@@ -88,7 +88,9 @@ impl Worker {
               let name: String = row.get(3);
               let lang_id = u8(lang_id).unwrap();
               i18n.langs_code.insert(lang_code.clone(), lang_id);
-              i18n.langs.insert(lang_id, LangItem {code, lang: lang_code, name, });
+              let l = LangItem {lang_id, code: code.clone(), lang: lang_code.clone(), name: name.clone(), };
+              i18n.sort.push(l.clone());
+              i18n.langs.insert(lang_id, l);
             }
           },
           Err(e) => {
@@ -121,11 +123,16 @@ impl Worker {
     let thread = thread::spawn(move || {
       let sql = Rc::new(RefCell::new(sql));
       let i18n_prepare: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>;
+      let langs: Rc<RefCell<HashMap<u8, LangItem>>>;
+      let sort: Rc<RefCell<Vec<LangItem>>>;
       // Init variable for translations
       {
         let w = Mutex::lock(&worker_thread).unwrap();
         let g = Mutex::lock(&w.go).unwrap();
         let lang_lock = Mutex::lock(&g.i18n).unwrap();
+        let (l, s) = lang_lock.clone_lang();
+        langs = Rc::new(RefCell::new(l));
+        sort = Rc::new(RefCell::new(s));
         i18n_prepare = Rc::new(RefCell::new(Worker::prepare_lang(lang_lock)));
       }
       // Start the thread in an endless cycle
@@ -142,7 +149,17 @@ impl Worker {
           Ok(message) => match message {
             Message::Job(stream) => {
               // Run fastcgi connection
-              Worker::fastcgi_connection(Arc::clone(&worker_thread), stream, max_connection, Rc::clone(&sql), &mut begin_record, &mut param_record, &mut stdin_record, Rc::clone(&i18n_prepare));
+              Worker::fastcgi_connection(
+                Arc::clone(&worker_thread), 
+                stream, max_connection, 
+                Rc::clone(&sql), 
+                &mut begin_record, 
+                &mut param_record, 
+                &mut stdin_record, 
+                Rc::clone(&i18n_prepare),
+                Rc::clone(&langs),
+                Rc::clone(&sort),
+              );
               let mut w = Mutex::lock(&worker_thread).unwrap();
               w.start = false;
               w.status = Status::None;
@@ -209,7 +226,9 @@ impl Worker {
     begin_record: &mut Option<Record>, 
     param_record: &mut HashMap<String, String>, 
     stdin_record: &mut Option<Vec<u8>>,
-    i18n_prepare: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>
+    i18n_prepare: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
+    langs: Rc<RefCell<HashMap<u8, LangItem>>>,
+    sort: Rc<RefCell<Vec<LangItem>>>,
   ){
     let mut buffer: [u8; FASTCGI_MAX_REQUEST_LEN] = [0; FASTCGI_MAX_REQUEST_LEN];
     let mut seek: usize = 0;
@@ -313,7 +332,14 @@ impl Worker {
                 w.status = Status::Work;
               }
               // Start CRM
-              let answer = Sys::run(Arc::clone(&worker), Rc::clone(&sql), param_record, Rc::clone(&i18n_prepare));
+              let answer = Sys::run(
+                Arc::clone(&worker), 
+                Rc::clone(&sql), 
+                param_record, 
+                Rc::clone(&i18n_prepare), 
+                Rc::clone(&langs),
+                Rc::clone(&sort),
+              );
               {
                 let mut w = Mutex::lock(&worker).unwrap();
                 w.status = Status::End;  

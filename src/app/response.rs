@@ -12,6 +12,7 @@ pub struct Response {
   code: Option<u16>,            // Header code (HTTP code)
   pub css: Vec<String>,         // Addition css script
   pub js: Vec<String>,          // Addition js script
+  pub lang: String,             // Current language code
 }
 
 // Cookie struct
@@ -30,6 +31,7 @@ impl Response {
       location: None,
       css: Vec::with_capacity(16),
       js: Vec::with_capacity(16),
+      lang: "".to_string(),
     }
   }
 

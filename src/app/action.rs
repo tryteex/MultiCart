@@ -1,8 +1,8 @@
-use std::{sync::{Mutex, Arc}, rc::Rc, cell::RefCell, collections::{HashMap, BTreeMap}};
+use std::{sync::{Mutex, Arc}, rc::Rc, cell::RefCell, collections::HashMap};
 
 use postgres::Client;
 
-use crate::{sys::go::{storage::Storage}};
+use crate::{sys::go::{storage::Storage, i18n::LangItem}};
 
 use super::{db::DB, set::Set, cache::Cache, request::Request, response::Response, session::Session, auth::Auth, lang::Lang};
 
@@ -12,37 +12,38 @@ use cast::u8;
 pub enum Answer{
   None,               // With out answer
   String(String),     // Answer in the form of text
-  Raw(Vec<u8>),       // Answer in vinary data
+  // Raw(Vec<u8>),       // Answer in binary data
 }
 
 // Type of data, which use in server
 pub enum Data {
   None,
-  I8(i8),
+  // I8(i8),
   U8(u8),
-  I16(i16),
-  U16(u16),
-  I32(i32),
-  U32(u32),
+  // I16(i16),
+  // U16(u16),
+  // I32(i32),
+  // U32(u32),
   I64(i64),
   U64(u64),
-  I128(i128),
-  U128(u128),
-  ISize(isize),
-  USize(usize),
-  F32(f32),
+  // I128(i128),
+  // U128(u128),
+  // ISize(isize),
+  // USize(usize),
+  // F32(f32),
   F64(f64),
   Bool(bool),
-  Char(char),
+  // Char(char),
   String(String),
   Vec(Vec<Data>),
-  MapU8(HashMap<u8, Data>),
-  MapU16(HashMap<u16, Data>),
-  MapU32(HashMap<u32, Data>),
-  MapU64(HashMap<u64, Data>),
+  VecLang((u8, Vec<LangItem>)),
+  // MapU8(HashMap<u8, Data>),
+  // MapU16(HashMap<u16, Data>),
+  // MapU32(HashMap<u32, Data>),
+  // MapU64(HashMap<u64, Data>),
   Map(HashMap<String, Data>),       // Map of string keys
-  Tree(BTreeMap<String, Data>),     // Map of string keys with a clearly fixed sequence
-  Raw(Vec<u8>),                     // Raw data
+  // Tree(BTreeMap<String, Data>),     // Map of string keys with a clearly fixed sequence
+  // Raw(Vec<u8>),                     // Raw data
 }
 
 // Main CRM struct
@@ -63,7 +64,16 @@ pub struct Action {
 
 impl Action {
   // Constructor
-  pub fn new(sql: Rc<RefCell<Client>>, salt: String, storage: Arc<Mutex<Storage>>, i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, param: &HashMap<String, String>, dir: String) -> Action {
+  pub fn new(
+    sql: Rc<RefCell<Client>>, 
+    salt: String, 
+    storage: Arc<Mutex<Storage>>, 
+    i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
+    param: &HashMap<String, String>, 
+    dir: String,
+    langs: Rc<RefCell<HashMap<u8, LangItem>>>,
+    sort: Rc<RefCell<Vec<LangItem>>>,
+  ) -> Action {
     let db = Rc::new(RefCell::new(DB::new(sql)));
     let cache = Rc::new(RefCell::new(Cache::new(storage)));
     let set = Rc::new(RefCell::new(Set::new(Rc::clone(&db), Rc::clone(&cache))));
@@ -71,7 +81,7 @@ impl Action {
     let response = Rc::new(RefCell::new(Response::new()));
     let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), Rc::clone(&response))));
     let auth = Rc::new(RefCell::new(Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache))));
-    let lang = Rc::new(RefCell::new(Lang::new(i18n, Rc::clone(&session))));
+    let lang = Rc::new(RefCell::new(Lang::new(i18n, Rc::clone(&session), langs, sort)));
     let module = "".to_string();
     let class = "".to_string();
     let action = "".to_string();
@@ -100,6 +110,7 @@ impl Action {
       {
         let mut lang = self.lang.borrow_mut();
         lang.set_lang_id(lang_id);
+        self.response.borrow_mut().lang = lang.get_code();
       }
       let mut data: HashMap<String, Data> = HashMap::with_capacity(256);
       // Start CRM system with fixed struct
@@ -208,18 +219,13 @@ impl Action {
 
   // Stop server
   pub fn stop(&mut self) {
-    let mut session = self.session.borrow_mut();
-    session.save();
+    self.session.borrow_mut().save();
   }
 
   // Start CRM system with fixed struct
   fn start_route(&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     // Get Access
-    let access;
-    {
-      let mut auth = self.auth.borrow_mut();
-      access = auth.get_access(module, class, action);
-    }
+    let access = self.auth.borrow_mut().get_access(module, class, action);
 
     if access {
       // Run controller
@@ -230,10 +236,7 @@ impl Action {
     if internal {
       return Answer::String("not_found".to_string());
     }
-    {
-      let mut response = self.response.borrow_mut();
-      response.set_redirect("/index/index/not_found".to_string(), false);
-    }
+    self.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), false);
     Answer::None
   }
 
@@ -248,6 +251,16 @@ impl Action {
     self.class = class.to_string();
     self.action = action.to_string();
     match module {
+      "admin" => match class {
+        "index" => {
+          let mut app = super::admin::index::App::new(self);
+            match action {
+            "index" => return app.index(params, data, internal),
+            _ => {}
+          };
+        },
+        _ => {},
+      },
       "index" => match class {
         "index" => {
           let mut app = super::index::index::App::new(self);
@@ -256,6 +269,16 @@ impl Action {
             "head" => return app.head(params, data, internal),
             "foot" => return app.foot(params, data, internal),
             "not_found" => return app.not_found(params, data, internal),
+            _ => {}
+          };
+        },
+        _ => {},
+      },
+      "login" => match class {
+        "admin" => {
+          let mut app = super::login::admin::App::new(self);
+            match action {
+            "index" => return app.index(params, data, internal),
             _ => {}
           };
         },

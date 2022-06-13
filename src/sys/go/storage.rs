@@ -28,22 +28,22 @@ impl Storage {
     }
   }
   
-  // Delete the value
-  pub fn del(&self, key: &str) {
-    for str in self.data.keys() {
-      if key.starts_with(key) {
-        self.del(str);
-      }
-    }
-  }
+  // // Delete the value
+  // pub fn del(&self, key: &str) {
+  //   for str in self.data.keys() {
+  //     if key.starts_with(key) {
+  //       self.del(str);
+  //     }
+  //   }
+  // }
 
-  // Checking key is set
-  pub fn is_key(&self, key: &str) -> bool {
-    self.data.contains_key(key)
-  }
+  // // Checking key is set
+  // pub fn is_key(&self, key: &str) -> bool {
+  //   self.data.contains_key(key)
+  // }
   
-  // Clear all value
-  pub fn clear(&mut self) {
-    self.data.clear();
-  }
+  // // Clear all value
+  // pub fn clear(&mut self) {
+  //   self.data.clear();
+  // }
 }
