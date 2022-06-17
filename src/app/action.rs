@@ -223,7 +223,7 @@ impl Action {
   }
 
   // Start CRM system with fixed struct
-  fn start_route(&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+  fn start_route(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     // Get Access
     let access = self.auth.borrow_mut().get_access(module, class, action);
 
@@ -241,12 +241,12 @@ impl Action {
   }
 
   // Load internal controller
-  pub fn load(&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>) -> Answer {
+  pub fn load(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>) -> Answer {
     self.start_route(module, class, action, params, data, true)
   }
 
   // Run controller
-  fn run (&mut self, module: &str, class: &str, action: &str, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+  fn run (&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     self.module = module.to_string();
     self.class = class.to_string();
     self.action = action.to_string();
@@ -272,13 +272,46 @@ impl Action {
             _ => {}
           };
         },
-        _ => {},
-      },
-      "login" => match class {
-        "admin" => {
-          let mut app = super::login::admin::App::new(self);
+        "cart" => {
+          let mut app = super::index::cart::App::new(self);
             match action {
             "index" => return app.index(params, data, internal),
+            _ => {}
+          };
+        },
+        "menu" => {
+          let mut app = super::index::menu::App::new(self);
+            match action {
+            "header" => return app.header(params, data, internal),
+            "products" => return app.products(params, data, internal),
+            "list" => return app.list(params, data, internal),
+            "logo" => return app.logo(params, data, internal),
+            "upper" => return app.upper(params, data, internal),
+            _ => {}
+          };
+        },
+        "search" => {
+          let mut app = super::index::search::App::new(self);
+            match action {
+            "main" => return app.main(params, data, internal),
+            "small" => return app.small(params, data, internal),
+            _ => {}
+          };
+        },
+        _ => {},
+      },
+      "user" => match class {
+        "admin" => {
+          let mut app = super::user::admin::App::new(self);
+            match action {
+            "index" => return app.index(params, data, internal),
+            _ => {}
+          };
+        },
+        "index" => {
+          let mut app = super::user::index::App::new(self);
+            match action {
+            "menu" => return app.menu(params, data, internal),
             _ => {}
           };
         },

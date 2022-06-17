@@ -18,9 +18,13 @@ mod app {
   }
   pub mod index {
     pub mod index;
+    pub mod menu;
+    pub mod search;
+    pub mod cart;
   }
-  pub mod login {
+  pub mod user {
     pub mod admin;
+    pub mod index;
   }
   pub mod action;
   pub mod db;

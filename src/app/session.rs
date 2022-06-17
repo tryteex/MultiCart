@@ -196,8 +196,8 @@ impl Session {
   fn set_value(&self, val: &Data) -> Value {
     match val {
       Data::None 
-      // | Data::I128(_) | Data::U128(_) | Data::Raw(_) 
-      | Data::VecLang(_) => Value::Null,
+      // | Data::I128(_) | Data::U128(_)  | Data::Raw(_) 
+     | Data::VecLang(_) => Value::Null,
       // Data::I8(v) => Value::Number(Number::from(v.clone())),
       Data::U8(v) => Value::Number(Number::from(v.clone())),
       // Data::I16(v) => Value::Number(Number::from(v.clone())),

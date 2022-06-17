@@ -1,3 +1,0 @@
-<?head?>
-404 - not found
-<?foot?>

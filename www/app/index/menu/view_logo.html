@@ -1,0 +1,24 @@
+<!-- Remove "navbar-sticky" class to make navigation bar scrollable with the page.-->
+<div class="navbar-sticky bg-light">
+  <div class="navbar navbar-expand-lg navbar-light">
+    <div class="container"><a class="navbar-brand d-none d-sm-block me-3 flex-shrink-0" href="index.html"><img src="/style/shop/img/logo-dark.png" width="142" alt="Cartzilla"></a><a class="navbar-brand d-sm-none me-2" href="index.html"><img src="/style/shop/img/logo-icon.png" width="74" alt="Cartzilla"></a>
+      <?=search?>
+      <!-- Toolbar-->
+      <div class="navbar-toolbar d-flex flex-shrink-0 align-items-center">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"><span class="navbar-toggler-icon"></span></button>
+          <a class="navbar-tool navbar-stuck-toggler" href="#"><span class="navbar-tool-tooltip">Toggle menu</span><div class="navbar-tool-icon-box"><i class="navbar-tool-icon ci-menu"></i></div></a>
+          <?=user?>
+          <?=cart?>
+      </div>
+    </div>
+  </div>
+  <div class="navbar navbar-expand-lg navbar-light navbar-stuck-menu mt-n2 pt-0 pb-2">
+    <div class="container">
+      <div class="collapse navbar-collapse" id="navbarCollapse">
+        <?=subsearch?>
+        <?=products?>
+        <?=list?>
+      </div>
+    </div>
+  </div>
+</div>

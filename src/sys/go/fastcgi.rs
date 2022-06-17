@@ -473,7 +473,7 @@ impl FastCGI {
   pub fn write_response(header: &Header, answer: Vec<u8>, stream: &mut TcpStream) -> Result<(), Error> {
     let mut data: Vec<u8> = Vec::new();
     let len = answer.len();
-    let mut size:u16;
+    let mut size: u16;
     let mut seek: usize = 0;
     let pack = Arc::new(answer);
     // Split data to parts
@@ -481,7 +481,7 @@ impl FastCGI {
       if seek + FASTCGI_MAX_CONTENT_LEN < len {
         size = u16(FASTCGI_MAX_CONTENT_LEN).unwrap();
       } else {
-        size = u16(len).unwrap();
+        size = u16(len - seek).unwrap();
       };
       let record = Record {
         header: Header {

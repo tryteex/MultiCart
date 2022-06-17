@@ -22,32 +22,36 @@ impl View {
     let file = format!("{}view_{}.html", self.dir, view);
     // Read data from template
     if let Ok(mut view) = read_to_string(&file) {
-      view = view.replace("<?lang?>", &self.response.borrow().lang);
+      view = view.replace("<?=lang?>", &self.response.borrow().lang);
       // Replase special marker
       for (key, data) in data {
         match data {
+          Data::None => {
+            let key = format!("<?={}?>", key);
+            view = view.replace(&key, "");
+          },
           Data::String(val) => {
-            let key = format!("<?{}?>", key);
+            let key = format!("<?={}?>", key);
             view = view.replace(&key, val);
           },
           Data::VecLang((lang_id, val)) => {
-            let key_start = format!("<?!+{}?>", key);
-            let key_finish = format!("<?!-{}?>", key);
+            let key_start = format!("<?[{}?>", key);
+            let key_finish = format!("<?{}]?>", key);
             if let Some(start) = view.find(&key_start) {
               if let Some(finish) = view.find(&key_finish) {
                 if start<finish {
                   let tpl = view[start+key_start.len()..finish].to_string();
                   let mut vec = Vec::with_capacity(val.len());
                   for lang in val {
-                    let k = format!("<?{}.lang_id?>", key);
+                    let k = format!("<?={}.lang_id?>", key);
                     let mut v = tpl.replace(&k, &lang.lang_id.to_string());
-                    let k = format!("<?{}.lang?>", key);
+                    let k = format!("<?={}.lang?>", key);
                     v = v.replace(&k, &lang.lang);
-                    let k = format!("<?{}.code?>", key);
+                    let k = format!("<?={}.code?>", key);
                     v = v.replace(&k, &lang.code);
-                    let k = format!("<?{}.name?>", key);
+                    let k = format!("<?={}.name?>", key);
                     v = v.replace(&k, &Lang::htmlencode(&lang.name));
-                    let k = format!("<?{}.selected?>", key);
+                    let k = format!("<?={}.selected?>", key);
                     if *lang_id == lang.lang_id {
                       v = v.replace(&k, "selected");
                     } else {

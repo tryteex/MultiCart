@@ -20,7 +20,7 @@ impl Auth {
   }
 
   // Checking access to the web controller
-  pub fn get_access(&mut self, module: &String, class: &String, action: &String) -> bool {
+  pub fn get_access(&mut self, module: &str, class: &str, action: &str) -> bool {
     let session = self.session.borrow();
     let mut cache = self.cache.borrow_mut();
     let mut db = self.db.borrow_mut();
