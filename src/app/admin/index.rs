@@ -16,10 +16,10 @@ impl<'a> App<'a> {
 
   // Main page
   pub fn index(&mut self, _params: &str, _data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
-    if self.action.auth.borrow_mut().get_access(&"admin".to_string(), &"index".to_string(), &"main".to_string()) {
-      self.action.response.borrow_mut().set_redirect("/admin/index/main".to_string(), false);
+    if self.action.auth.borrow_mut().get_access(&"admin".to_owned(), &"index".to_owned(), &"main".to_owned()) {
+      self.action.response.borrow_mut().set_redirect("/admin/index/main".to_owned(), false);
     } else {
-      self.action.response.borrow_mut().set_redirect("/login/admin/index".to_string(), false);
+      self.action.response.borrow_mut().set_redirect("/login/admin/index".to_owned(), false);
     }
 
     

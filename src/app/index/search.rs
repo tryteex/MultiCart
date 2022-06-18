@@ -14,17 +14,19 @@ impl<'a> App<'a> {
     App { view, action}
   }
 
+  // main page header search
   pub fn main(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("main".to_string(), data)
+    self.view.out("main".to_owned(), data)
   }
   
+  // search in menu
   pub fn small(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("small".to_string(), data)
+    self.view.out("small".to_owned(), data)
   }
 }

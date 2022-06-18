@@ -35,7 +35,7 @@ impl Set {
       FROM 
         setting 
       WHERE key={}
-      ", db.escape(key.to_string()));
+      ", db.escape(key.to_owned()));
     let res = db.query(&sql);
     if res.len() == 0 {
       return None;

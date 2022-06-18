@@ -26,7 +26,7 @@ impl Auth {
     let mut db = self.db.borrow_mut();
 
     // System user always has access
-    let key = "system".to_string();
+    let key = "system".to_owned();
     if let Some(system) = session.get(&key) {
       if let Data::Bool(v) = system {
         if *v { return true; };
@@ -45,7 +45,7 @@ impl Auth {
 
     // Prepare sql query
     let mut w: Vec<String> = Vec::with_capacity(4);
-    w.push("(c.module='' AND c.class='' AND c.action='')".to_string());
+    w.push("(c.module='' AND c.class='' AND c.action='')".to_owned());
     if module.len() > 0 {
       w.push(format!("(c.module='{}' AND c.class='' AND c.action='')", module));
       if class.len() > 0 {
@@ -63,7 +63,7 @@ impl Auth {
         INNER JOIN user_role u ON u.role_id=a.role_id
         INNER JOIN controller c ON a.controller_id=c.controller_id
       WHERE a.access AND u.user_id={} AND ({})
-    ", session.user_id, w.join(" OR ").to_string());
+    ", session.user_id, w.join(" OR ").to_owned());
     let res = db.query(&sql);
     if res.len() == 1 {
       let row = &res[0];

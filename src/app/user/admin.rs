@@ -17,10 +17,10 @@ impl<'a> App<'a> {
   // Main page
   pub fn index(&mut self, _params: &str, data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
     let lang = self.action.lang.borrow();
-    data.insert("title".to_string(), Data::String(lang.get(&"title".to_string())));
-    data.insert("enter".to_string(), Data::String(lang.get(&"enter".to_string())));
-    data.insert("lang".to_string(), lang.get_lang_view(lang.lang_id));
-    data.insert("lang_id".to_string(), Data::String(lang.lang_id.to_string()));
-    self.view.out("login".to_string(), data)
+    data.insert("title".to_owned(), Data::String(lang.get(&"title".to_owned())));
+    data.insert("enter".to_owned(), Data::String(lang.get(&"enter".to_owned())));
+    data.insert("lang".to_owned(), lang.get_lang_view(lang.lang_id));
+    data.insert("lang_id".to_owned(), Data::String(lang.lang_id.to_string()));
+    self.view.out("login".to_owned(), data)
   }
 }

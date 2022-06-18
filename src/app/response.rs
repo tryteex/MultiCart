@@ -31,7 +31,7 @@ impl Response {
       location: None,
       css: Vec::with_capacity(16),
       js: Vec::with_capacity(16),
-      lang: "".to_string(),
+      lang: "".to_owned(),
     }
   }
 

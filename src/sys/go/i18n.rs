@@ -92,14 +92,14 @@ impl I18n {
                                                                   }
                                                                   let data = self.data.get_mut(id).unwrap();
                                                                   if !data.contains_key(p1_index) {
-                                                                    data.insert(p1_index.to_string(), HashMap::with_capacity(256));
+                                                                    data.insert(p1_index.to_owned(), HashMap::with_capacity(256));
                                                                   }
                                                                   let data = data.get_mut(p1_index).unwrap();
                                                                   if !data.contains_key(p2_index) {
-                                                                    data.insert(p2_index.to_string(), HashMap::with_capacity(size));
+                                                                    data.insert(p2_index.to_owned(), HashMap::with_capacity(size));
                                                                   }
                                                                   let data = data.get_mut(p2_index).unwrap();
-                                                                  data.insert(key.to_string(), value.to_string());
+                                                                  data.insert(key.to_owned(), value.to_owned());
                                                                 },
                                                                 _ => {},
                                                               }

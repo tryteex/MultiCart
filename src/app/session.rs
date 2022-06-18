@@ -29,7 +29,7 @@ impl Session {
     let mut session;
     let mut change = false;
     let data = HashMap::new();
-    let key = "tryteex".to_string();
+    let key = "tryteex".to_owned();
     {
       // Get and check cookie
       let request_load = request.borrow();
@@ -40,13 +40,13 @@ impl Session {
               if rx.is_match(s) {
                 s.to_owned()
               } else {
-                "".to_string()
+                "".to_owned()
               }
             },
-            Err(_) => "".to_string(),
+            Err(_) => "".to_owned(),
           }
         },
-        None => "".to_string(),
+        None => "".to_owned(),
       };
       if session.len() == 0 {
         // Generate a new cookie
@@ -78,7 +78,7 @@ impl Session {
 
   // Get user lang_id
   pub fn get_lang_id(&self) -> Option<u8> {
-    let key = "lang_id".to_string();
+    let key = "lang_id".to_owned();
     match self.get(&key) {
         Some(d) => match d {
           Data::U8(v) => Some(*v),
@@ -211,7 +211,7 @@ impl Session {
       // Data::F32(v) => Value::Number(Number::from_f64(v.clone().into()).unwrap()),
       Data::F64(v) => Value::Number(Number::from_f64(v.clone()).unwrap()),
       Data::Bool(v) => Value::Bool(v.clone()),
-      // Data::Char(v) => Value::String(v.to_string()),
+      // Data::Char(v) => Value::String(v.to_owned()),
       Data::String(v) => Value::String(v.clone()),
       Data::Vec(v) => {
         let mut val: Vec<Value> = Vec::with_capacity(v.len());
@@ -223,42 +223,42 @@ impl Session {
       // Data::MapU8(v) => {
       //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
       //   for (key, vl) in v {
-      //     val.insert(key.to_string(), self.set_value(vl));
+      //     val.insert(key.to_owned(), self.set_value(vl));
       //   }
       //   Value::Object(val)
       // },
       // Data::MapU16(v) => {
       //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
       //   for (key, vl) in v {
-      //     val.insert(key.to_string(), self.set_value(vl));
+      //     val.insert(key.to_owned(), self.set_value(vl));
       //   }
       //   Value::Object(val)
       // },
       // Data::MapU32(v) => {
       //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
       //   for (key, vl) in v {
-      //     val.insert(key.to_string(), self.set_value(vl));
+      //     val.insert(key.to_owned(), self.set_value(vl));
       //   }
       //   Value::Object(val)
       // },
       // Data::MapU64(v) => {
       //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
       //   for (key, vl) in v {
-      //     val.insert(key.to_string(), self.set_value(vl));
+      //     val.insert(key.to_owned(), self.set_value(vl));
       //   }
       //   Value::Object(val)
       // },
       Data::Map(v) => {
         let mut val: Map<String, Value> = Map::with_capacity(v.len());
         for (key, vl) in v {
-          val.insert(key.to_string(), self.set_value(vl));
+          val.insert(key.to_owned(), self.set_value(vl));
         }
         Value::Object(val)
       },
       // Data::Tree(v) => {
       //   let mut val: Map<String, Value> = Map::with_capacity(v.len());
       //   for (key, vl) in v {
-      //     val.insert(key.to_string(), self.set_value(vl));
+      //     val.insert(key.to_owned(), self.set_value(vl));
       //   }
       //   Value::Object(val)
       // },

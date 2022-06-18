@@ -17,64 +17,64 @@ impl<'a> App<'a> {
   // Main header
   pub fn header(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
     if let Answer::String(a) = self.action.load("index", "menu", "upper", "", data) {
-      data.insert("upper".to_string(), Data::String(a));
+      data.insert("upper".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "menu", "logo", "", data) {
-      data.insert("logo".to_string(), Data::String(a));
+      data.insert("logo".to_owned(), Data::String(a));
     };
-    self.view.out("header".to_string(), data)
+    self.view.out("header".to_owned(), data)
   }
   
   // Products main menu
   pub fn products(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("products".to_string(), data)
+    self.view.out("products".to_owned(), data)
   }
   
   // Main menu
   pub fn list(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("list".to_string(), data)
+    self.view.out("list".to_owned(), data)
   }
   
   // Logo + Search + user + cart
   pub fn logo(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
     if let Answer::String(a) = self.action.load("index", "cart", "index", "", data) {
-      data.insert("cart".to_string(), Data::String(a));
+      data.insert("cart".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "menu", "products", "", data) {
-      data.insert("products".to_string(), Data::String(a));
+      data.insert("products".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "search", "main", "", data) {
-      data.insert("search".to_string(), Data::String(a));
+      data.insert("search".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "search", "small", "", data) {
-      data.insert("subsearch".to_string(), Data::String(a));
+      data.insert("subsearch".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "menu", "list", "", data) {
-      data.insert("list".to_string(), Data::String(a));
+      data.insert("list".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("user", "index", "menu", "", data) {
-      data.insert("user".to_string(), Data::String(a));
+      data.insert("user".to_owned(), Data::String(a));
     };
-    self.view.out("logo".to_string(), data)
+    self.view.out("logo".to_owned(), data)
   }
   
   // Upper menu
   pub fn upper(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("upper".to_string(), data)
+    self.view.out("upper".to_owned(), data)
   }
 }

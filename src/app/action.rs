@@ -70,6 +70,7 @@ impl Action {
     storage: Arc<Mutex<Storage>>, 
     i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
     param: &HashMap<String, String>, 
+    stdin: &Option<Vec<u8>>, 
     dir: String,
     langs: Rc<RefCell<HashMap<u8, LangItem>>>,
     sort: Rc<RefCell<Vec<LangItem>>>,
@@ -77,14 +78,14 @@ impl Action {
     let db = Rc::new(RefCell::new(DB::new(sql)));
     let cache = Rc::new(RefCell::new(Cache::new(storage)));
     let set = Rc::new(RefCell::new(Set::new(Rc::clone(&db), Rc::clone(&cache))));
-    let request = Rc::new(RefCell::new(Request::new(param, dir.clone())));
+    let request = Rc::new(RefCell::new(Request::new(param, stdin, dir.clone())));
     let response = Rc::new(RefCell::new(Response::new()));
     let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), Rc::clone(&response))));
     let auth = Rc::new(RefCell::new(Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache))));
     let lang = Rc::new(RefCell::new(Lang::new(i18n, Rc::clone(&session), langs, sort)));
-    let module = "".to_string();
-    let class = "".to_string();
-    let action = "".to_string();
+    let module = "".to_owned();
+    let class = "".to_owned();
+    let action = "".to_owned();
 
 
     Action {
@@ -128,12 +129,12 @@ impl Action {
 
     // Find redirect
     let route = &request.url;
-    let url = db.escape(route.to_string());
+    let url = db.escape(route.to_owned());
     let key = format!("redirect:{}", route);
     if let Some(data) = cache.get(&key) {
       if let Data::String(r) = data {
         let permanently = if r.starts_with("1") { true } else { false };
-        response.set_redirect(r[1..].to_string(), permanently);
+        response.set_redirect(r[1..].to_owned(), permanently);
         return None;
       }
     }
@@ -161,10 +162,10 @@ impl Action {
     if let Some(data) = cache.get(&key) {
       if let Data::String(r) = data {
         let res: Vec<&str> = r.splitn(5, ":").collect();
-        let module = res[0].to_string();
-        let class = res[1].to_string();
-        let action = res[2].to_string();
-        let params = res[3].to_string();
+        let module = res[0].to_owned();
+        let class = res[1].to_owned();
+        let action = res[2].to_owned();
+        let params = res[3].to_owned();
         let lang_id = res[4].parse::<u8>().unwrap();
         return Some((module, class, action, params, Some(lang_id)));
       }
@@ -184,34 +185,34 @@ impl Action {
       let params: String = row.get(3);
       let lang_id: i64 = row.get(4);
       let lang_id = u8(lang_id).unwrap();
-      let value = format!("{}:{}:{}:{}:{}", module, class, action, params, lang_id.to_string());
+      let value = format!("{}:{}:{}:{}:{}", module, class, action, params, lang_id.to_owned());
       cache.set(key, Data::String(value));
       return Some((module, class, action, params, Some(lang_id)));
     }
     cache.set(key, Data::None);
 
     // Encode route
-    let mut module = "index".to_string();
-    let mut class = "index".to_string();
-    let mut action = "index".to_string();
-    let mut params = "index".to_string();
+    let mut module = "index".to_owned();
+    let mut class = "index".to_owned();
+    let mut action = "index".to_owned();
+    let mut params = "index".to_owned();
     if route != "/" {
       let load: Vec<&str> = route.splitn(5, "/").collect();
       let len = load.len();
       if len == 2{
-        module = load[1].to_string();
+        module = load[1].to_owned();
       } else if len == 3 {
-        module = load[1].to_string();
-        class = load[2].to_string();
+        module = load[1].to_owned();
+        class = load[2].to_owned();
       } else if len == 4 {
-        module = load[1].to_string();
-        class = load[2].to_string();
-        action = load[3].to_string();
+        module = load[1].to_owned();
+        class = load[2].to_owned();
+        action = load[3].to_owned();
       } else if len == 5 {
-        module = load[1].to_string();
-        class = load[2].to_string();
-        action = load[3].to_string();
-        params = load[4].to_string();
+        module = load[1].to_owned();
+        class = load[2].to_owned();
+        action = load[3].to_owned();
+        params = load[4].to_owned();
       }
     }
     Some((module, class, action, params, None))
@@ -234,9 +235,9 @@ impl Action {
     
     // Not found
     if internal {
-      return Answer::String("not_found".to_string());
+      return Answer::String("not_found".to_owned());
     }
-    self.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), false);
+    self.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), false);
     Answer::None
   }
 
@@ -247,9 +248,9 @@ impl Action {
 
   // Run controller
   fn run (&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
-    self.module = module.to_string();
-    self.class = class.to_string();
-    self.action = action.to_string();
+    self.module = module.to_owned();
+    self.class = class.to_owned();
+    self.action = action.to_owned();
     match module {
       "admin" => match class {
         "index" => {
@@ -312,6 +313,7 @@ impl Action {
           let mut app = super::user::index::App::new(self);
             match action {
             "menu" => return app.menu(params, data, internal),
+            "up" => return app.menu(params, data, internal),
             _ => {}
           };
         },

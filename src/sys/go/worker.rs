@@ -49,7 +49,7 @@ impl Worker {
       max_connection = init.sys.max_connection.into();
       let db = &init.db;
       tz = format!("SET timezone TO {};", escape_literal(&init.time_zone));
-      conn = format!("host='{}' port='{}' dbname='{}' user='{}' password='{}' connect_timeout=2 application_name='{} {}' options='--client_encoding=UTF8'", db.host, &db.port, &db.name, &db.user, &db.pwd, &env!("CARGO_PKG_NAME").to_string(), &env!("CARGO_PKG_VERSION").to_string());
+      conn = format!("host='{}' port='{}' dbname='{}' user='{}' password='{}' connect_timeout=2 application_name='{} {}' options='--client_encoding=UTF8'", db.host, &db.port, &db.name, &db.user, &db.pwd, &env!("CARGO_PKG_NAME").to_owned(), &env!("CARGO_PKG_VERSION").to_owned());
     }
     // Connect to the database
     let mut sql = match Client::connect(&conn, NoTls) {
@@ -193,11 +193,11 @@ impl Worker {
         for (class, map) in classes {
           let mut m: HashMap<String, String> = HashMap::with_capacity(map.len());
           for (key, val) in map {
-            m.insert(key.to_string(), val.to_string());
+            m.insert(key.to_owned(), val.to_owned());
           }
-          v.insert(class.to_string(), Rc::new(RefCell::new(m)));
+          v.insert(class.to_owned(), Rc::new(RefCell::new(m)));
         }
-        vl.insert(module.to_string(), v);
+        vl.insert(module.to_owned(), v);
       }
       data.insert(*lang_id, vl);
     }
@@ -336,6 +336,7 @@ impl Worker {
                 Arc::clone(&worker), 
                 Rc::clone(&sql), 
                 param_record, 
+                stdin_record, 
                 Rc::clone(&i18n_prepare), 
                 Rc::clone(&langs),
                 Rc::clone(&sort),

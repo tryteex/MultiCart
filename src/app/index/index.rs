@@ -18,34 +18,34 @@ impl<'a> App<'a> {
   pub fn index(&mut self, _params: &str, data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
     {
       let lang = self.action.lang.borrow();
-      data.insert("title".to_string(), Data::String(lang.get(&"title".to_string())));
+      data.insert("title".to_owned(), Data::String(lang.get(&"title".to_owned())));
     }
     if let Answer::String(a) = self.action.load("index", "index", "head", "", data) {
-      data.insert("head".to_string(), Data::String(a));
+      data.insert("head".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "index", "foot", "", data) {
-      data.insert("foot".to_string(), Data::String(a));
+      data.insert("foot".to_owned(), Data::String(a));
     };
-    self.view.out("index".to_string(), data)
+    self.view.out("index".to_owned(), data)
   }
   
   // Header index
   pub fn head(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
     if let Answer::String(a) = self.action.load("index", "menu", "header", "", data) {
-      data.insert("header".to_string(), Data::String(a));
+      data.insert("header".to_owned(), Data::String(a));
     };
-    self.view.out("head".to_string(), data)
+    self.view.out("head".to_owned(), data)
   }
 
   // Footer index
   pub fn foot(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("foot".to_string(), data)
+    self.view.out("foot".to_owned(), data)
   }
 
   // Not found
@@ -54,12 +54,12 @@ impl<'a> App<'a> {
       return Answer::None;
     }
     if let Answer::String(a) = self.action.load("index", "index", "head", "", data) {
-      data.insert("head".to_string(), Data::String(a));
+      data.insert("head".to_owned(), Data::String(a));
     };
     if let Answer::String(a) = self.action.load("index", "index", "foot", "", data) {
-      data.insert("foot".to_string(), Data::String(a));
+      data.insert("foot".to_owned(), Data::String(a));
     };
     self.action.response.borrow_mut().set_header_code(404);
-    self.view.out("not_found".to_string(), data)
+    self.view.out("not_found".to_owned(), data)
   }
 }

@@ -47,12 +47,12 @@ impl Init {
   pub fn new() -> Result<Init, String> {
     let exe = match env::current_exe() {
       Ok(exe) => match exe.to_str() {
-          Some(exe) => exe.to_string(),
+          Some(exe) => exe.to_owned(),
           None =>return Err(LogApp::get_error(6, "")),
       },
       Err(e) => return Err(LogApp::get_error(5, &e.to_string())),
     };
-    let dir = (&exe[..exe.len() - 1 - Path::new(&exe).file_name().unwrap().len()]).to_string();
+    let dir = (&exe[..exe.len() - 1 - Path::new(&exe).file_name().unwrap().len()]).to_owned();
 
     let sys = Sys {
       max_connection: 25,
@@ -73,11 +73,11 @@ impl Init {
       dir,
       exe,
       sys,
-      version: env!("CARGO_PKG_VERSION").to_string(),
+      version: env!("CARGO_PKG_VERSION").to_owned(),
       db,
       app: AppAction::Help,
-      time_zone: "".to_string(),
-      salt: "".to_string(),
+      time_zone: "".to_owned(),
+      salt: "".to_owned(),
     })
   }
 
@@ -124,48 +124,48 @@ impl Init {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(107, value)),
               1024.. => return Err(LogApp::get_error(108, value)),
-              _ => self.dir = value.to_string(),
+              _ => self.dir = value.to_owned(),
             }
           },
           "version" => {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(109, value)),
               12.. => return Err(LogApp::get_error(110, value)),
-              _ => self.version = value.to_string(),
+              _ => self.version = value.to_owned(),
             }
           },
           "db_host" => {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(111, value)),
-              _ => self.db.host = value.to_string(),
+              _ => self.db.host = value.to_owned(),
             }
           },
           "db_port" => {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(112, value)),
-              _ => self.db.port = value.to_string(),
+              _ => self.db.port = value.to_owned(),
             }
           },
           "db_user" => {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(113, value)),
-              _ => self.db.user = value.to_string(),
+              _ => self.db.user = value.to_owned(),
             }
           },
           "db_pwd" => {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(114, value)),
-              _ => self.db.pwd = value.to_string(),
+              _ => self.db.pwd = value.to_owned(),
             }
           },
           "db_name" => {
             match value.trim().len() {
               0 => return Err(LogApp::get_error(115, value)),
-              _ => self.db.name = value.to_string(),
+              _ => self.db.name = value.to_owned(),
             }
           },
-          "time_zone" => self.time_zone = value.trim().to_string(),
-          "salt" => self.salt = value.trim().to_string(),
+          "time_zone" => self.time_zone = value.trim().to_owned(),
+          "salt" => self.salt = value.trim().to_owned(),
          _ => {},
         },
         _ => {},

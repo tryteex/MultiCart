@@ -6,7 +6,7 @@ use super::{action::Data, session::Session};
 
 // Copy data with translation
 pub struct Lang {
-  pub lang_id: u8,                                                                                                  // User lang_id 
+  pub lang_id: u8,                                                                                              // User lang_id 
   session: Rc<RefCell<Session>>,                                                                                // Session for store user selected lang_id
   i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>,       // Global ref to tranlations
   data: Option<Rc<RefCell<HashMap<String, String>>>>,                                                           // Local copy of translation for web controller
@@ -37,7 +37,7 @@ impl Lang {
   pub fn set_lang_id(&mut self, lang_id: Option<u8>) {
     let mut session = self.session.borrow_mut();
 
-    let key = "lang_id".to_string();
+    let key = "lang_id".to_owned();
     match lang_id {
       None => match session.get_lang_id() {
         Some(lang_id) => self.lang_id = lang_id,

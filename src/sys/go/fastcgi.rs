@@ -283,9 +283,9 @@ impl FastCGI {
       return ContentData::None;
     }
     let mut params: HashMap<String, String> = HashMap::with_capacity(3);
-    params.insert("FCGI_MAX_CONNS".to_string(), max_connection.to_string());
-    params.insert("FASTCGI_MAX_REQS".to_string(), max_connection.to_string());
-    params.insert("FASTCGI_MAX_CONNS".to_string(), max_connection.to_string());
+    params.insert("FCGI_MAX_CONNS".to_owned(), max_connection.to_string());
+    params.insert("FASTCGI_MAX_REQS".to_owned(), max_connection.to_string());
+    params.insert("FASTCGI_MAX_CONNS".to_owned(), max_connection.to_string());
 
     let len = u16(params.len()).unwrap();
     let record = Record {

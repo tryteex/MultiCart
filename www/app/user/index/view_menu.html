@@ -49,26 +49,107 @@
             <div class="invalid-feedback">Please provide a valid email address.</div>
           </div>
           <div class="mb-3">
-            <label class="form-label" for="su-password">Password</label>
-            <div class="password-toggle">
-              <input class="form-control" type="password" id="su-password" required>
-              <label class="password-toggle-btn" aria-label="Show/hide password">
-                <input class="password-toggle-check" type="checkbox"><span class="password-toggle-indicator"></span>
-              </label>
-            </div>
+            <label for="su-tel">Mobile pnone number</label>
+            <input class="form-control" type="tel" id="su-tel" placeholder="+380501234567" size=13>
+            <div class="form-text">Не обов'язкове поле</div>
+            <div class="invalid-feedback">Please provide your phone number.</div>
           </div>
           <div class="mb-3">
-            <label class="form-label" for="su-password-confirm">Confirm password</label>
-            <div class="password-toggle">
-              <input class="form-control" type="password" id="su-password-confirm" required>
-              <label class="password-toggle-btn" aria-label="Show/hide password">
-                <input class="password-toggle-check" type="checkbox"><span class="password-toggle-indicator"></span>
-              </label>
-            </div>
+            <label class="form-label" for="su-pwd">Password</label>
+            <input class="form-control" type="password" id="su-pwd" required>
+            <div class="form-text">Your password must be 8-20 characters long, contain letters and numbers, and must not contain spaces, special characters, or emoji.</div>
+            <div class="invalid-feedback">Please provide a valid email address.</div>
           </div>
-          <button class="btn btn-primary btn-shadow d-block w-100" type="submit">Sign up</button>
+          <div class="mb-3">
+            <label class="form-label" for="su-repwd">Confirm password</label>
+            <input class="form-control" type="password" id="su-repwd" required>
+            <div class="invalid-feedback">Please provide a valid email address.</div>
+          </div>
+          <button class="btn btn-primary btn-shadow d-block w-100" type="button" id="su">
+            Sign up
+            <div id="su-wait" class="invisible spinner-border spinner-border-sm text-light" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </button>
         </form>
       </div>
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function(event) {
+    let su = document.getElementById('su');
+    su.addEventListener('click', event => {
+      let su_wait = document.getElementById('su-wait');
+      let su_name = document.getElementById('su-name');
+      let su_email = document.getElementById('su-email');
+      let su_tel = document.getElementById('su-tel');
+      let su_pwd= document.getElementById('su-pwd');
+      let su_repwd = document.getElementById('su-repwd');
+
+      su.setAttribute('disabled', '');
+      su_wait.classList.remove('invisible');
+      su_name.classList.remove('is-invalid');
+      su_email.classList.remove('is-invalid');
+      su_tel.classList.remove('is-invalid');
+      su_pwd.classList.remove('is-invalid');
+      su_repwd.classList.remove('is-invalid');
+
+      let post = 'name='+encodeURIComponent(su_name.value);
+      post += '&email='+encodeURIComponent(su_email.value);
+      post += '&tel='+encodeURIComponent(su_tel.value);
+      post += '&pwd='+encodeURIComponent(su_pwd.value);
+      post += '&repwd='+encodeURIComponent(su_repwd.value);
+
+      let xhr = new XMLHttpRequest();
+      xhr.timeout = 1000;
+      xhr.open('POST', '/user/index/up');
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+      xhr.setRequestHeader('Cache-Control', 'no-cache');
+      xhr.responseType = 'json';
+      xhr.onerror = function() {
+    //     wait.classList.add('uk-hidden');
+    //     btn.removeAttribute('disabled');
+    //     err.innerHTML = '<?=$err_up_net ?>';
+    //     err.classList.remove('uk-hidden')
+      };
+      xhr.ontimeout = function() {
+    //     wait.classList.add('uk-hidden');
+    //     btn.removeAttribute('disabled');
+    //     err.innerHTML = '<?=$err_up_timeout ?>';
+    //     err.classList.remove('uk-hidden')
+      };
+      xhr.onload = function() {
+        su.removeAttribute('disabled');
+        su_wait.classList.add('invisible');
+    //     if (xhr.status == 200) {
+    //       let answer = xhr.response;
+    //       if(answer == null) {
+    //         wait.classList.add('uk-hidden');
+    //         btn.removeAttribute('disabled');
+    //         err.innerHTML = '<?=$err_up_null ?>';
+    //         err.classList.remove('uk-hidden')
+    //       } else if(answer.err) {  
+    //         if(answer.confirm.length == 0) {
+    //           wait.classList.add('uk-hidden');
+    //           btn.removeAttribute('disabled');
+    //           err.innerHTML = answer.text;
+    //           err.classList.remove('uk-hidden')
+    //         } else {
+    //           window.location.href = '/user/index/denied/'+encodeURIComponent(answer.confirm);
+    //         }
+    //       } else {
+    //         window.location.href = '/';
+    //       }
+    //     } else {
+    //       wait.classList.add('uk-hidden');
+    //       btn.removeAttribute('disabled');
+    //       err.innerHTML = '<?=$err_up_err ?>' + xhr.status + ' ' + xhr.statusText;
+    //       err.classList.remove('uk-hidden')
+    //     }
+      };
+      xhr.send(post);
+    });
+  });
+</script>

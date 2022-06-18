@@ -17,8 +17,8 @@ impl<'a> App<'a> {
   // cart in header
   pub fn index(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("index".to_string(), data)
+    self.view.out("index".to_owned(), data)
   }
 }

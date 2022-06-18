@@ -14,10 +14,20 @@ impl<'a> App<'a> {
     App { view, action}
   }
 
+  // Header login item
   pub fn menu(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_string(), true);
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
     }
-    self.view.out("menu".to_string(), data)
+    self.view.out("menu".to_owned(), data)
+  }
+  
+  // Sign up
+  pub fn up(&mut self, _params: &str, _data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
+    if !self.action.request.borrow().ajax {
+      self.action.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), true);
+    }
+    
+    Answer::None
   }
 }

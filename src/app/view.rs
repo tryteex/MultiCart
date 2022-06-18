@@ -40,7 +40,7 @@ impl View {
             if let Some(start) = view.find(&key_start) {
               if let Some(finish) = view.find(&key_finish) {
                 if start<finish {
-                  let tpl = view[start+key_start.len()..finish].to_string();
+                  let tpl = view[start+key_start.len()..finish].to_owned();
                   let mut vec = Vec::with_capacity(val.len());
                   for lang in val {
                     let k = format!("<?={}.lang_id?>", key);

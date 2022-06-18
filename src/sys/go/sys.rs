@@ -15,6 +15,7 @@ impl Sys {
     worker: Arc<Mutex<Worker>>, 
     sql: Rc<RefCell<Client>>, 
     param: &HashMap<String, String>, 
+    stdin: &Option<Vec<u8>>, 
     i18n: Rc<RefCell<HashMap<u8, 
     HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
     langs: Rc<RefCell<HashMap<u8, LangItem>>>, 
@@ -34,7 +35,7 @@ impl Sys {
       dir = i.dir.clone();
     }
     // Run CRM
-    let mut action = Action::new(sql, salt, storage, i18n, param, dir, langs, sort);
+    let mut action = Action::new(sql, salt, storage, i18n, param, stdin, dir, langs, sort);
     let text = match action.start() {
       // Answer::Raw(answer) => answer,
       Answer::String(answer) => answer.as_bytes().to_vec(),
@@ -44,7 +45,7 @@ impl Sys {
 
     // Prepare answer to the WEB server
     let mut answer: Vec<String> = Vec::with_capacity(16);
-    answer.push("HTTP/1.1 ".to_string());
+    answer.push("HTTP/1.1 ".to_owned());
 
     let response = action.response.borrow();
     if let Some(location) = response.get_redirect() {
@@ -65,10 +66,10 @@ impl Sys {
       let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
       answer.push(format!("Set-Cookie: {}={}; Expires={}; Max-Age={}; path=/; domain={}; Secure; SameSite=none\r\n", cookie.key, cookie.value, date, cookie.time, request.host));
     }
-    answer.push("Connection: keep-alive\r\n".to_string());
+    answer.push("Connection: keep-alive\r\n".to_owned());
     answer.push(format!("Content-Type: text/html; charset=utf-8\r\n"));
     answer.push(format!("Content-Length: {}\r\n", text.len()));
-    answer.push("\r\n".to_string());
+    answer.push("\r\n".to_owned());
     let mut answer = answer.join("").as_bytes().to_vec();
     answer.extend_from_slice(&text[..]);
 

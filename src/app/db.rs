@@ -34,15 +34,15 @@ impl DB {
       Ok(res) => {
         self.err = false;
         self.counts = u64(res.len());
-        self.error = "".to_string();
-        self.query = sql.to_string();
+        self.error = "".to_owned();
+        self.query = sql.to_owned();
         return res;
       },
       Err(e) => {
         self.err = true;
         self.counts = 0;
         self.error = e.to_string();
-        self.query = sql.to_string();
+        self.query = sql.to_owned();
         return Vec::new();
       },
     };

@@ -14,7 +14,7 @@ impl LogApp {
   pub fn new() -> LogApp{
     LogApp { 
       pid: 0,
-      dir: "".to_string(),
+      dir: "".to_owned(),
     }
   }
 
