@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex, RwLock}, cell::RefCell, rc::Rc, collections::HashMap};
+use std::{sync::{Arc, Mutex, RwLock}, cell::RefCell, rc::Rc, collections::HashMap, fs::remove_file};
 
 use chrono::{Duration, Utc};
 use postgres::Client;
@@ -65,6 +65,12 @@ impl Sys {
       let time = Utc::now() + Duration::seconds(cookie.time.into());
       let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
       answer.push(format!("Set-Cookie: {}={}; Expires={}; Max-Age={}; path=/; domain={}; Secure; SameSite=none\r\n", cookie.key, cookie.value, date, cookie.time, request.host));
+      // delete temp files
+      for (_, val) in &request.file {
+        for f in val {
+          remove_file(&f.tmp).unwrap_or_default();
+        }
+      }
     }
     answer.push("Connection: keep-alive\r\n".to_owned());
     answer.push(format!("Content-Type: text/html; charset=utf-8\r\n"));
@@ -73,8 +79,6 @@ impl Sys {
     let mut answer = answer.join("").as_bytes().to_vec();
     answer.extend_from_slice(&text[..]);
 
-    // delete temp files
-    println!("{:#?}", action.request.borrow().file);
     answer
   }
 }
