@@ -73,6 +73,8 @@ impl Sys {
     let mut answer = answer.join("").as_bytes().to_vec();
     answer.extend_from_slice(&text[..]);
 
+    // delete temp files
+    println!("{:#?}", action.request.borrow().file);
     answer
   }
 }

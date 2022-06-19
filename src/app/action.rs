@@ -257,6 +257,7 @@ impl Action {
           let mut app = super::admin::index::App::new(self);
             match action {
             "index" => return app.index(params, data, internal),
+            "main" => return app.main(params, data, internal),
             _ => {}
           };
         },
@@ -313,7 +314,7 @@ impl Action {
           let mut app = super::user::index::App::new(self);
             match action {
             "menu" => return app.menu(params, data, internal),
-            "up" => return app.menu(params, data, internal),
+            "up" => return app.up(params, data, internal),
             _ => {}
           };
         },

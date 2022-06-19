@@ -250,7 +250,6 @@ impl Worker {
         RecordType::Some(record) => record,
         RecordType::ErrorStream => break,
       };
-
       // This command must go in a certain order
       match record.header.header_type {
         HeaderType::BeginRequest => {
@@ -267,7 +266,7 @@ impl Worker {
           if let Some(record) = begin_record {
             FastCGI::write_abort(&record.header, &mut stream).unwrap_or(());
           }
-          break
+          break;
         },
         HeaderType::Params => {
           // Got "Param" record
@@ -293,10 +292,8 @@ impl Worker {
               }
             },
             ContentData::None => {
-              {
-                let mut w = Mutex::lock(&worker).unwrap();
-                w.status = Status::ParamEnd;
-              }
+              let mut w = Mutex::lock(&worker).unwrap();
+              w.status = Status::ParamEnd;
             },
             _ => break, 
           }
@@ -313,12 +310,8 @@ impl Worker {
           match record.data {
             ContentData::Stream(data) => {
               match stdin_record {
-                Some(param) => {
-                  param.extend_from_slice(&data[..]);
-                },
-                None => {
-                  *stdin_record = Some(data);
-                },
+                Some(param) => param.extend_from_slice(&data[..]),
+                None => *stdin_record = Some(data),
               } 
               {
                 let mut w = Mutex::lock(&worker).unwrap();

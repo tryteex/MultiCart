@@ -18,7 +18,7 @@ impl Set {
   }
   
   // Getting setting
-  pub fn get(&mut self, key: &String) -> Option<String> {
+  pub fn get(&mut self, key: &str) -> Option<String> {
     let mut db = self.db.borrow_mut();
     let mut cache = self.cache.borrow_mut();
 

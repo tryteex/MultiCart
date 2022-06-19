@@ -21,8 +21,13 @@ impl<'a> App<'a> {
     } else {
       self.action.response.borrow_mut().set_redirect("/login/admin/index".to_owned(), false);
     }
-
     
     Answer::None
+  }
+
+  //Dashboard
+  pub fn main(&mut self, _params: &str, data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
+    data.insert("company".to_owned(), Data::String(self.action.set.borrow_mut().get("company").unwrap()));
+    self.view.out("main".to_owned(), data)
   }
 }

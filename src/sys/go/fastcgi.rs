@@ -203,30 +203,27 @@ impl FastCGI {
     if *size - *seek < FASTCGI_HEADER_LEN {
       return ReadStatus::Continue;
     }
-
     // Read header
     let header = FastCGI::read_header(&buffer[*seek..*seek + FASTCGI_HEADER_LEN]);
     if let None = header {
       return ReadStatus::Break;
     }
     let header = header.unwrap();
-    // Seek buffer
-    *seek += FASTCGI_HEADER_LEN;
     // Validate readed data
     if let HeaderType::BeginRequest | HeaderType::AbortRequest | HeaderType::Params | HeaderType::Stdin | HeaderType::Data = header.header_type {
       if header.request_id == 0 {
-        *seek += usize::from(header.content_length) + usize::from(header.padding_length);
+        *seek += usize::from(header.content_length) + usize::from(header.padding_length) + FASTCGI_HEADER_LEN;
         return ReadStatus::Break;
       };
     };
     // Second step of Validating readed data
     if let HeaderType::EndRequest | HeaderType::Stdout | HeaderType::Stderr | HeaderType::GetValuesResult | HeaderType::UnknownType = header.header_type {
-      *seek += usize::from(header.content_length) + usize::from(header.padding_length);
+      *seek += usize::from(header.content_length) + usize::from(header.padding_length) + FASTCGI_HEADER_LEN;
       return ReadStatus::Break;
     }
     if header.content_length == 0 {
       // Check if data is empty 
-      *seek += usize::from(header.padding_length);
+      *seek += usize::from(header.padding_length) + FASTCGI_HEADER_LEN;
       if let HeaderType::GetValues | HeaderType::BeginRequest = header.header_type {
         return ReadStatus::Break;
       }
@@ -242,25 +239,25 @@ impl FastCGI {
     if *size - *seek < usize::from(header.content_length) + usize::from(header.padding_length) {
       return ReadStatus::Continue;
     }
+    let hseek = *seek + FASTCGI_HEADER_LEN;
     // Read data
     let data = match header.header_type {
       HeaderType::BeginRequest => {
         if usize::from(header.content_length) != FASTCGI_BEGIN_REQUEST_LEN {
-          *seek += usize::from(header.content_length) + usize::from(header.padding_length);
+          *seek += usize::from(header.content_length) + usize::from(header.padding_length) + FASTCGI_HEADER_LEN;
           return ReadStatus::Break;
         }
-        FastCGI::read_begin_request(&buffer[*seek..*seek + usize::from(header.content_length)])
+        FastCGI::read_begin_request(&buffer[hseek..hseek + usize::from(header.content_length)])
       },
-      HeaderType::Params => FastCGI::read_param(&mut buffer[*seek..*seek + usize::from(header.content_length)]),
+      HeaderType::Params => FastCGI::read_param(&mut buffer[hseek..hseek + usize::from(header.content_length)]),
       HeaderType::GetValues => FastCGI::read_write_value(header.request_id, stream, max_connection),
-      HeaderType::AbortRequest => FastCGI::read_stream(&mut buffer[*seek..*seek + usize::from(header.content_length)]),
-      HeaderType::Stdin => FastCGI::read_stream(&mut buffer[*seek..*seek + usize::from(header.content_length)]),
-      HeaderType::Data => FastCGI::read_stream(&mut buffer[*seek..*seek + usize::from(header.content_length)]),
+      HeaderType::AbortRequest => FastCGI::read_stream(&mut buffer[hseek..hseek + usize::from(header.content_length)]),
+      HeaderType::Stdin => FastCGI::read_stream(&mut buffer[hseek..hseek + usize::from(header.content_length)]),
+      HeaderType::Data => FastCGI::read_stream(&mut buffer[hseek..hseek + usize::from(header.content_length)]),
       HeaderType::Error(unknown) => FastCGI::write_unknown(unknown, header.request_id, stream),
       _ => ContentData::Error,
-
     };
-    *seek += usize::from(header.content_length) + usize::from(header.padding_length);
+    *seek += usize::from(header.content_length) + usize::from(header.padding_length) + FASTCGI_HEADER_LEN;
     if let ContentData::Break | ContentData::Error = data {
       return ReadStatus::Break;
     }
