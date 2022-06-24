@@ -10,7 +10,7 @@ impl<'a> App<'a> {
   pub fn new(action: &mut Action) -> App {
     let dir = format!("{}/app/{}/{}/", action.request.borrow().path, &action.module, &action.class);
     let view = View::new(Rc::clone(&action.response), dir);
-    action.lang.borrow_mut().load(&action.module, &action.class);
+    action.lang.load(&action.module, &action.class);
     App { view, action}
   }
 

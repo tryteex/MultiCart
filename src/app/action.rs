@@ -59,7 +59,7 @@ pub struct Action {
   pub response: Rc<RefCell<Response>>,      // Response to WEB server
   pub session: Rc<RefCell<Session>>,        // Session
   pub auth: Rc<RefCell<Auth>>,              // Authentification system
-  pub lang: Rc<RefCell<Lang>>,              // Copy data with translation
+  pub lang: Lang,                           // Copy data with translation
 }
 
 impl Action {
@@ -82,7 +82,7 @@ impl Action {
     let response = Rc::new(RefCell::new(Response::new()));
     let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), Rc::clone(&response))));
     let auth = Rc::new(RefCell::new(Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache))));
-    let lang = Rc::new(RefCell::new(Lang::new(i18n, Rc::clone(&session), langs, sort)));
+    let lang = Lang::new(i18n, Rc::clone(&session), langs, sort);
     let module = "".to_owned();
     let class = "".to_owned();
     let action = "".to_owned();
@@ -108,11 +108,8 @@ impl Action {
   pub fn start(&mut self) -> Answer {
     // Encode routes
     if let Some((module, class, action, params, lang_id)) = self.extract_route() {
-      {
-        let mut lang = self.lang.borrow_mut();
-        lang.set_lang_id(lang_id);
-        self.response.borrow_mut().lang = lang.get_code();
-      }
+      self.lang.set_lang_id(lang_id);
+      self.response.borrow_mut().lang = self.lang.get_code();
       let mut data: HashMap<String, Data> = HashMap::with_capacity(256);
       // Start CRM system with fixed struct
       return self.start_route(&module, &class, &action, &params, &mut data, false);
