@@ -56,7 +56,7 @@ pub struct Action {
   pub cache: Rc<RefCell<Cache>>,            // Cache
   pub set: Rc<RefCell<Set>>,                // Setting
   pub request: Rc<RefCell<Request>>,        // Request from WEB server
-  pub response: Rc<RefCell<Response>>,      // Response to WEB server
+  pub response: Response,                   // Response to WEB server
   pub session: Rc<RefCell<Session>>,        // Session
   pub auth: Auth,                           // Authentification system
   pub lang: Lang,                           // Copy data with translation
@@ -79,8 +79,8 @@ impl Action {
     let cache = Rc::new(RefCell::new(Cache::new(storage)));
     let set = Rc::new(RefCell::new(Set::new(Rc::clone(&db), Rc::clone(&cache))));
     let request = Rc::new(RefCell::new(Request::new(param, stdin, dir.clone())));
-    let response = Rc::new(RefCell::new(Response::new()));
-    let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), Rc::clone(&response))));
+    let mut response = Response::new();
+    let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), &mut response)));
     let auth = Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache));
     let lang = Lang::new(i18n, Rc::clone(&session), langs, sort);
     let module = "".to_owned();
@@ -109,7 +109,7 @@ impl Action {
     // Encode routes
     if let Some((module, class, action, params, lang_id)) = self.extract_route() {
       self.lang.set_lang_id(lang_id);
-      self.response.borrow_mut().lang = self.lang.get_code();
+      self.response.lang = self.lang.get_code();
       let mut data: HashMap<String, Data> = HashMap::with_capacity(256);
       // Start CRM system with fixed struct
       return self.start_route(&module, &class, &action, &params, &mut data, false);
@@ -121,7 +121,6 @@ impl Action {
   fn extract_route(&mut self) -> Option<(String, String, String, String, Option<u8>)> {
     let request = self.request.borrow();
     let mut db = self.db.borrow_mut();
-    let mut response = self.response.borrow_mut();
     let mut cache = self.cache.borrow_mut();
 
     // Find redirect
@@ -131,7 +130,7 @@ impl Action {
     if let Some(data) = cache.get(&key) {
       if let Data::String(r) = data {
         let permanently = if r.starts_with("1") { true } else { false };
-        response.set_redirect(r[1..].to_owned(), permanently);
+        self.response.set_redirect(r[1..].to_owned(), permanently);
         return None;
       }
     }
@@ -148,7 +147,7 @@ impl Action {
       let c = if code { "1" } else { "0" };
       let permanently = if code { true } else { false };
       let value = format!("{}{}", c, redirect);
-      response.set_redirect(redirect, permanently);
+      self.response.set_redirect(redirect, permanently);
       cache.set(key, Data::String(value));
       return None;
     }
@@ -234,7 +233,7 @@ impl Action {
     if internal {
       return Answer::String("not_found".to_owned());
     }
-    self.response.borrow_mut().set_redirect("/index/index/not_found".to_owned(), false);
+    self.response.set_redirect("/index/index/not_found".to_owned(), false);
     Answer::None
   }
 

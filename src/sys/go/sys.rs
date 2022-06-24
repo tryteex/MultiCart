@@ -47,20 +47,19 @@ impl Sys {
     let mut answer: Vec<String> = Vec::with_capacity(16);
     answer.push("HTTP/1.1 ".to_owned());
 
-    let response = action.response.borrow();
-    if let Some(location) = response.get_redirect() {
+    if let Some(location) = action.response.get_redirect() {
       if location.permanently {
         answer.push(format!("{}\r\n", Response::get_code(301)));
       } else {
         answer.push(format!("{}\r\n", Response::get_code(302)));
       }
       answer.push(format!("{}\r\n", location.url));
-    } else if let Some(code) = response.get_header_code() {
+    } else if let Some(code) = action.response.get_header_code() {
       answer.push(format!("{}\r\n", Response::get_code(*code)));
     } else {
       answer.push(format!("{}\r\n", Response::get_code(200)));
     }
-    if let Some(cookie) = response.get_cookie() {
+    if let Some(cookie) = action.response.get_cookie() {
       let request = action.request.borrow();
       let time = Utc::now() + Duration::seconds(cookie.time.into());
       let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();

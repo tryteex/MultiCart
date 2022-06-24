@@ -1,18 +1,16 @@
-use std::{cell::RefCell, rc::Rc, collections::HashMap, fs::read_to_string};
+use std::{collections::HashMap, fs::read_to_string};
 
-use super::{response::Response, action::{Answer, Data}, lang::Lang};
+use super::{action::{Answer, Data}, lang::Lang};
 
 // Processing of html templates (Templater)
 pub struct View {
-  response: Rc<RefCell<Response>>,    // Response data
   dir: String,                        // Working directory
 }
 
 impl View {
   // Constructor
-  pub fn new(response: Rc<RefCell<Response>>, dir: String) -> View {
+  pub fn new(dir: String) -> View {
     View {
-      response,
       dir,
     }
   }
@@ -22,7 +20,6 @@ impl View {
     let file = format!("{}view_{}.html", self.dir, view);
     // Read data from template
     if let Ok(mut view) = read_to_string(&file) {
-      view = view.replace("<?=lang?>", &self.response.borrow().lang);
       // Replase special marker
       for (key, data) in data {
         match data {

@@ -24,8 +24,7 @@ pub struct Session {
 
 impl Session {
   // Constructor
-  pub fn new(salt: String, db: Rc<RefCell<DB>>, request: Rc<RefCell<Request>>, response: Rc<RefCell<Response>>) -> Session {
-    let mut response_load = response.borrow_mut();
+  pub fn new(salt: String, db: Rc<RefCell<DB>>, request: Rc<RefCell<Request>>, response: &mut Response) -> Session {
     let mut session;
     let mut change = false;
     let data = HashMap::new();
@@ -60,7 +59,7 @@ impl Session {
     }
     
     // set cookie
-    response_load.set_cookie(key, session.clone(), ON_YEAR);
+    response.set_cookie(key, session.clone(), ON_YEAR);
 
     let mut session = Session {
       user_id: 0,

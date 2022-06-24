@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 use crate::app::{action::{Action, Data, Answer}, view::View};
 
@@ -9,7 +9,7 @@ pub struct App<'a> {
 impl<'a> App<'a> {
   pub fn new(action: &mut Action) -> App {
     let dir = format!("{}/app/{}/{}/", action.request.borrow().path, &action.module, &action.class);
-    let view = View::new(Rc::clone(&action.response), dir);
+    let view = View::new(dir);
     action.lang.load(&action.module, &action.class);
     App { view, action}
   }
@@ -17,9 +17,9 @@ impl<'a> App<'a> {
   // Main page
   pub fn index(&mut self, _params: &str, _data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
     if self.action.auth.get_access(&"admin".to_owned(), &"index".to_owned(), &"main".to_owned()) {
-      self.action.response.borrow_mut().set_redirect("/admin/index/main".to_owned(), false);
+      self.action.response.set_redirect("/admin/index/main".to_owned(), false);
     } else {
-      self.action.response.borrow_mut().set_redirect("/login/admin/index".to_owned(), false);
+      self.action.response.set_redirect("/login/admin/index".to_owned(), false);
     }
     
     Answer::None
