@@ -54,7 +54,7 @@ pub struct Action {
   pub salt: String,                         // Salt for password
   pub db: Rc<RefCell<DB>>,                  // Database
   pub cache: Rc<RefCell<Cache>>,            // Cache
-  pub set: Rc<RefCell<Set>>,                // Setting
+  pub set: Set,                             // Setting
   pub request: Rc<RefCell<Request>>,        // Request from WEB server
   pub response: Response,                   // Response to WEB server
   pub session: Rc<RefCell<Session>>,        // Session
@@ -77,7 +77,7 @@ impl Action {
   ) -> Action {
     let db = Rc::new(RefCell::new(DB::new(sql)));
     let cache = Rc::new(RefCell::new(Cache::new(storage)));
-    let set = Rc::new(RefCell::new(Set::new(Rc::clone(&db), Rc::clone(&cache))));
+    let set = Set::new(Rc::clone(&db), Rc::clone(&cache));
     let request = Rc::new(RefCell::new(Request::new(param, stdin, dir.clone())));
     let mut response = Response::new();
     let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), &mut response)));
