@@ -58,7 +58,7 @@ pub struct Action {
   pub request: Rc<RefCell<Request>>,        // Request from WEB server
   pub response: Rc<RefCell<Response>>,      // Response to WEB server
   pub session: Rc<RefCell<Session>>,        // Session
-  pub auth: Rc<RefCell<Auth>>,              // Authentification system
+  pub auth: Auth,                           // Authentification system
   pub lang: Lang,                           // Copy data with translation
 }
 
@@ -81,7 +81,7 @@ impl Action {
     let request = Rc::new(RefCell::new(Request::new(param, stdin, dir.clone())));
     let response = Rc::new(RefCell::new(Response::new()));
     let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), Rc::clone(&response))));
-    let auth = Rc::new(RefCell::new(Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache))));
+    let auth = Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache));
     let lang = Lang::new(i18n, Rc::clone(&session), langs, sort);
     let module = "".to_owned();
     let class = "".to_owned();
@@ -223,7 +223,7 @@ impl Action {
   // Start CRM system with fixed struct
   fn start_route(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     // Get Access
-    let access = self.auth.borrow_mut().get_access(module, class, action);
+    let access = self.auth.get_access(module, class, action);
 
     if access {
       // Run controller
