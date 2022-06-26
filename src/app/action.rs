@@ -78,7 +78,7 @@ impl Action {
     let db = Rc::new(RefCell::new(DB::new(sql)));
     let cache = Rc::new(RefCell::new(Cache::new(storage)));
     let set = Set::new(Rc::clone(&db), Rc::clone(&cache));
-    let request = Rc::new(RefCell::new(Request::new(param, stdin, dir.clone())));
+    let request = Rc::new(RefCell::new(Request::new(param, stdin, &dir)));
     let mut response = Response::new();
     let session = Rc::new(RefCell::new(Session::new(salt.clone(), Rc::clone(&db), Rc::clone(&request), &mut response)));
     let auth = Auth::new(Rc::clone(&session), Rc::clone(&db), Rc::clone(&cache));
@@ -125,7 +125,7 @@ impl Action {
 
     // Find redirect
     let route = &request.url;
-    let url = db.escape(route.to_owned());
+    let url = db.escape(route);
     let key = format!("redirect:{}", route);
     if let Some(data) = cache.get(&key) {
       if let Data::String(r) = data {

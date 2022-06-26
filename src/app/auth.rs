@@ -37,7 +37,7 @@ impl Auth {
     // Check access in cache
     if let Some(a) = cache.get(&key) {
       if let Data::Bool(val) = a {
-        return val.clone();
+        return val;
       } else {
         return false;
       }

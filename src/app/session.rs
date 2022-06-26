@@ -125,7 +125,7 @@ impl Session {
   fn load(&mut self) {
     let mut db = self.db.borrow_mut();
     let request = self.request.borrow();
-    let ses_esc = db.escape(self.session.clone());
+    let ses_esc = db.escape(&self.session);
     let sql = format!("
       WITH 
         new_q AS (
@@ -143,7 +143,7 @@ impl Session {
       SELECT session_id, data::text, user_id FROM ins_q
       UNION 
       SELECT session_id, data::text, user_id FROM session WHERE session={}
-    ", ses_esc, db.escape(request.ip.clone()), db.escape(request.agent.clone()), ses_esc);
+    ", ses_esc, db.escape(&request.ip), db.escape(&request.agent), ses_esc);
     let res = db.query(&sql);
     if res.len() != 1 {
       return;
@@ -198,18 +198,18 @@ impl Session {
       // | Data::I128(_) | Data::U128(_)  | Data::Raw(_) 
      | Data::VecLang(_) => Value::Null,
       // Data::I8(v) => Value::Number(Number::from(v.clone())),
-      Data::U8(v) => Value::Number(Number::from(v.clone())),
+      Data::U8(v) => Value::Number(Number::from(*v)),
       // Data::I16(v) => Value::Number(Number::from(v.clone())),
       // Data::U16(v) => Value::Number(Number::from(v.clone())),
       // Data::I32(v) => Value::Number(Number::from(v.clone())),
       // Data::U32(v) => Value::Number(Number::from(v.clone())),
-      Data::I64(v) => Value::Number(Number::from(v.clone())),
-      Data::U64(v) => Value::Number(Number::from(v.clone())),
+      Data::I64(v) => Value::Number(Number::from(*v)),
+      Data::U64(v) => Value::Number(Number::from(*v)),
       // Data::ISize(v) => Value::Number(Number::from(v.clone())),
       // Data::USize(v) => Value::Number(Number::from(v.clone())),
       // Data::F32(v) => Value::Number(Number::from_f64(v.clone().into()).unwrap()),
-      Data::F64(v) => Value::Number(Number::from_f64(v.clone()).unwrap()),
-      Data::Bool(v) => Value::Bool(v.clone()),
+      Data::F64(v) => Value::Number(Number::from_f64(*v).unwrap()),
+      Data::Bool(v) => Value::Bool(*v),
       // Data::Char(v) => Value::String(v.to_owned()),
       Data::String(v) => Value::String(v.clone()),
       Data::Vec(v) => {
@@ -285,7 +285,7 @@ impl Session {
           user_agent = {}
        WHERE
          session_id={}
-      ", self.user_id, data, db.escape(request.ip.clone()), db.escape(request.agent.clone()), self.session_id);
+      ", self.user_id, data, db.escape(&request.ip), db.escape(&request.agent), self.session_id);
       db.query(&sql);
     } else {
       // If date not changed, only update last visit time

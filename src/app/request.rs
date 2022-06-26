@@ -30,7 +30,7 @@ pub struct Request {
 
 impl Request {
   // Constructor
-  pub fn new(param: &HashMap<String, String>, stdin: &Option<Vec<u8>>, dir: String) -> Request {
+  pub fn new(param: &HashMap<String, String>, stdin: &Option<Vec<u8>>, dir: &str) -> Request {
     let mut get = HashMap::with_capacity(16);
     let mut post = HashMap::with_capacity(128);
     let mut file = HashMap::with_capacity(16);
@@ -54,7 +54,7 @@ impl Request {
     let url = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
     let url = decode(&url.splitn(2, '?').next().unwrap().to_owned()).unwrap_or_default().to_string();
     let key = "DOCUMENT_ROOT".to_owned();
-    let path = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { dir };
+    let path = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { dir.to_owned() };
     let site = format!("{}://{}", scheme, host);
 
     // Extract GET data 

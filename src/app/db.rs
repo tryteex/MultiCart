@@ -49,7 +49,7 @@ impl DB {
   }
 
   // Escape text.
-  pub fn escape(&self, text: String)->String {
+  pub fn escape(&self, text: &str)->String {
     escape_literal(&text)
   }
 }
