@@ -27,14 +27,6 @@ mod app {
     pub mod index;
   }
   pub mod action;
-  pub mod db;
-  pub mod cache;
-  pub mod set;
-  pub mod request;
-  pub mod response;
-  pub mod session;
-  pub mod auth;
-  pub mod lang;
   pub mod view;
 }
 

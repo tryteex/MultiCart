@@ -8,16 +8,16 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
   pub fn new(action: &mut Action) -> App {
-    let dir = format!("{}/app/{}/{}/", action.request.borrow().path, &action.module, &action.class);
+    let dir = format!("{}/app/{}/{}/", action.path, &action.module, &action.class);
     let view = View::new(dir);
-    action.lang.load(&action.module, &action.class);
+    action.lang_load(&action.module, &action.class);
     App { view, action}
   }
 
   // main page header search
   pub fn main(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     self.view.out("main".to_owned(), data)
   }
@@ -25,7 +25,7 @@ impl<'a> App<'a> {
   // search in menu
   pub fn small(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     self.view.out("small".to_owned(), data)
   }

@@ -8,16 +8,16 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
   pub fn new(action: &mut Action) -> App {
-    let dir = format!("{}/app/{}/{}/", action.request.borrow().path, &action.module, &action.class);
+    let dir = format!("{}/app/{}/{}/", action.path, &action.module, &action.class);
     let view = View::new(dir);
-    action.lang.load(&action.module, &action.class);
+    action.lang_load(&action.module, &action.class);
     App { view, action}
   }
 
   // Main header
   pub fn header(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     if let Answer::String(a) = self.action.load("index", "menu", "upper", "", data) {
       data.insert("upper".to_owned(), Data::String(a));
@@ -31,7 +31,7 @@ impl<'a> App<'a> {
   // Products main menu
   pub fn products(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     self.view.out("products".to_owned(), data)
   }
@@ -39,7 +39,7 @@ impl<'a> App<'a> {
   // Main menu
   pub fn list(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     self.view.out("list".to_owned(), data)
   }
@@ -47,7 +47,7 @@ impl<'a> App<'a> {
   // Logo + Search + user + cart
   pub fn logo(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     if let Answer::String(a) = self.action.load("index", "cart", "index", "", data) {
       data.insert("cart".to_owned(), Data::String(a));
@@ -73,7 +73,7 @@ impl<'a> App<'a> {
   // Upper menu
   pub fn upper(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     self.view.out("upper".to_owned(), data)
   }

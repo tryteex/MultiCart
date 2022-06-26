@@ -8,24 +8,24 @@ pub struct App<'a> {
 
 impl<'a> App<'a> {
   pub fn new(action: &mut Action) -> App {
-    let dir = format!("{}/app/{}/{}/", action.request.borrow().path, &action.module, &action.class);
+    let dir = format!("{}/app/{}/{}/", action.path, &action.module, &action.class);
     let view = View::new(dir);
-    action.lang.load(&action.module, &action.class);
+    action.lang_load(&action.module, &action.class);
     App { view, action}
   }
 
   // Header login item
   pub fn menu(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     self.view.out("menu".to_owned(), data)
   }
   
   // Sign up
   pub fn up(&mut self, _params: &str, _data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
-    if !self.action.request.borrow().ajax {
-      self.action.response.set_redirect("/index/index/not_found".to_owned(), true);
+    if !self.action.ajax {
+      self.action.set_redirect("/index/index/not_found".to_owned(), true);
     }
     
     Answer::None

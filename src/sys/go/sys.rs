@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex, RwLock}, cell::RefCell, rc::Rc, collections::HashMa
 use chrono::{Duration, Utc};
 use postgres::Client;
 
-use crate::app::{action::{Action, Answer}, response::Response};
+use crate::app::{action::{Action, Answer}};
 use super::{worker::Worker, i18n::LangItem};
 
 // Wrapper for the fastCGI server
@@ -47,28 +47,25 @@ impl Sys {
     let mut answer: Vec<String> = Vec::with_capacity(16);
     answer.push("HTTP/1.1 ".to_owned());
 
-    if let Some(location) = action.response.get_redirect() {
+    if let Some(location) = action.get_redirect() {
       if location.permanently {
-        answer.push(format!("{}\r\n", Response::get_code(301)));
+        answer.push(format!("{}\r\n", Action::get_code(301)));
       } else {
-        answer.push(format!("{}\r\n", Response::get_code(302)));
+        answer.push(format!("{}\r\n", Action::get_code(302)));
       }
       answer.push(format!("{}\r\n", location.url));
-    } else if let Some(code) = action.response.get_header_code() {
-      answer.push(format!("{}\r\n", Response::get_code(*code)));
+    } else if let Some(code) = action.http_code {
+      answer.push(format!("{}\r\n", Action::get_code(code)));
     } else {
-      answer.push(format!("{}\r\n", Response::get_code(200)));
+      answer.push(format!("{}\r\n", Action::get_code(200)));
     }
-    if let Some(cookie) = action.response.get_cookie() {
-      let request = action.request.borrow();
-      let time = Utc::now() + Duration::seconds(cookie.time.into());
-      let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
-      answer.push(format!("Set-Cookie: {}={}; Expires={}; Max-Age={}; path=/; domain={}; Secure; SameSite=none\r\n", cookie.key, cookie.value, date, cookie.time, request.host));
-      // delete temp files
-      for (_, val) in &request.file {
-        for f in val {
-          remove_file(&f.tmp).unwrap_or_default();
-        }
+    let time = Utc::now() + Duration::seconds(action.set_cookie.time.into());
+    let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
+    answer.push(format!("Set-Cookie: {}={}; Expires={}; Max-Age={}; path=/; domain={}; Secure; SameSite=none\r\n", action.set_cookie.key, action.set_cookie.value, date, action.set_cookie.time, action.host));
+    // delete temp files
+    for (_, val) in &action.file {
+      for f in val {
+        remove_file(&f.tmp).unwrap_or_default();
       }
     }
     answer.push("Connection: keep-alive\r\n".to_owned());
