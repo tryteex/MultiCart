@@ -6,19 +6,19 @@ pub struct App<'a> {
   view: View, action: &'a mut Action,
 }
 
-impl<'a> App<'a> {
-  pub fn new(action: &mut Action) -> App {
-    let dir = format!("{}/app/{}/{}/", action.path, &action.module, &action.class);
+impl App<'_> {
+  pub fn new<'a>(action: &'a mut Action, module: &'a String, class: &'a String) -> App<'a> {
+    let dir = format!("{}/app/{}/{}/", action.path, module, class);
     let view = View::new(dir);
-    action.lang_load(&action.module, &action.class);
+    action.lang_load(module, class);
     App { view, action}
   }
 
   // cart in header
   pub fn index(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.set_redirect("/index/index/not_found".to_owned(), true);
+      self.action.set_redirect("/index/index/not_found", true);
     }
-    self.view.out("index".to_owned(), data)
+    self.view.out("index", data)
   }
 }

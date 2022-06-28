@@ -58,9 +58,6 @@ pub struct Cookie {
 
 // Main CRM struct
 pub struct Action {
-  pub module: String,                       // Run module
-  pub class: String,                        // Run class
-  pub action: String,                       // Run controller
   pub salt: String,                         // Salt for password
 
   db_sql: Rc<RefCell<Client>>,              // Postgresql connection
@@ -119,10 +116,6 @@ impl Action {
     langs: Rc<RefCell<HashMap<u8, LangItem>>>,
     sort: Rc<RefCell<Vec<LangItem>>>,
   ) -> Action {
-
-    let module = "".to_owned();
-    let class = "".to_owned();
-    let action = "".to_owned();
 
     // Request init
     let mut get = HashMap::with_capacity(16);
@@ -196,7 +189,7 @@ impl Action {
         };
       } else if let "multipart/form-data; boundary=" = &content[..30] {
         // Multi post with files
-        let boundary = format!("--{}", &content[30..]).as_bytes().to_vec();
+        let boundary = format!("--{}", &content[30..]).into_bytes();
         let stop: [u8; 4] = [13, 10, 13, 10];
         if let Some(data) = stdin {
           let mut seek: usize = 0;
@@ -270,10 +263,7 @@ impl Action {
       session_change = true;
     }
 
-    let act = Action {
-      module,
-      class,
-      action,
+    let mut act = Action {
       salt,
 
       // db
@@ -361,7 +351,7 @@ impl Action {
 
   // Cache block
   // Set value
-  pub fn cache_set(&mut self, key: String, value: Data) {
+  pub fn cache_set(&self, key: String, value: Data) {
     let mut s = Mutex::lock(&self.storage).unwrap();
     s.set(key, value);
   }
@@ -463,7 +453,7 @@ impl Action {
   }
 
   // Set redirect
-  pub fn set_redirect(&mut self, url: String, permanently: bool) {
+  pub fn set_redirect(&mut self, url: &str, permanently: bool) {
     self.location = Some(Location {url: format!("Location: {}", url), permanently, });
   }
 
@@ -474,72 +464,75 @@ impl Action {
 
   // Get text from http code
   pub fn get_code(code: u16) -> String {
+    let mut s = String::with_capacity(48);
+    s.push_str(&code.to_string());
     match code {
-      100 => format!("{} Continue", code),
-      101 => format!("{} Switching Protocols", code),
-      102 => format!("{} Processing", code),
-      103 => format!("{} Early Hints", code),
-      200 => format!("{} OK", code),
-      201 => format!("{} Created", code),
-      202 => format!("{} Accepted", code),
-      203 => format!("{} Non-Authoritative Information", code),
-      204 => format!("{} No Content", code),
-      205 => format!("{} Reset Content", code),
-      206 => format!("{} Partial Content", code),
-      207 => format!("{} Multi-Status", code),
-      208 => format!("{} Already Reported", code),
-      226 => format!("{} IM Used", code),
-      300 => format!("{} Multiple Choices", code),
-      301 => format!("{} Moved Permanently", code),
-      302 => format!("{} Found", code),
-      303 => format!("{} See Other", code),
-      304 => format!("{} Not Modified", code),
-      305 => format!("{} Use Proxy", code),
-      306 => format!("{} (Unused)", code),
-      307 => format!("{} Temporary Redirect", code),
-      308 => format!("{} Permanent Redirect", code),
-      400 => format!("{} Bad Request", code),
-      401 => format!("{} Unauthorized", code),
-      402 => format!("{} Payment Required", code),
-      403 => format!("{} Forbidden", code),
-      404 => format!("{} Not Found", code),
-      405 => format!("{} Method Not Allowed", code),
-      406 => format!("{} Not Acceptable", code),
-      407 => format!("{} Proxy Authentication Required", code),
-      408 => format!("{} Request Timeout", code),
-      409 => format!("{} Conflict", code),
-      410 => format!("{} Gone", code),
-      411 => format!("{} Length Required", code),
-      412 => format!("{} Precondition Failed", code),
-      413 => format!("{} Content Too Large", code),
-      414 => format!("{} URI Too Long", code),
-      415 => format!("{} Unsupported Media Type", code),
-      416 => format!("{} Range Not Satisfiable", code),
-      417 => format!("{} Expectation Failed", code),
-      418 => format!("{} (Unused)", code),
-      421 => format!("{} Misdirected Request", code),
-      422 => format!("{} Unprocessable Content", code),
-      423 => format!("{} Locked", code),
-      424 => format!("{} Failed Dependency", code),
-      425 => format!("{} Too Early", code),
-      426 => format!("{} Upgrade Required", code),
-      428 => format!("{} Precondition Required", code),
-      429 => format!("{} Too Many Requests", code),
-      431 => format!("{} Request Header Fields Too Large", code),
-      451 => format!("{} Unavailable For Legal Reasons", code),
-      500 => format!("{} Internal Server Error", code),
-      501 => format!("{} Not Implemented", code),
-      502 => format!("{} Bad Gateway", code),
-      503 => format!("{} Service Unavailable", code),
-      504 => format!("{} Gateway Timeout", code),
-      505 => format!("{} HTTP Version Not Supported", code),
-      506 => format!("{} Variant Also Negotiates", code),
-      507 => format!("{} Insufficient Storage", code),
-      508 => format!("{} Loop Detected", code),
-      510 => format!("{} Not Extended (OBSOLETED)", code),
-      511 => format!("{} Network Authentication Required", code),
-      code => format!("{} Unassigned", code),
-    }
+      100 => s.push_str(" Continue"),
+      101 => s.push_str(" Switching Protocols"),
+      102 => s.push_str(" Processing"),
+      103 => s.push_str(" Early Hints"),
+      200 => s.push_str(" OK"),
+      201 => s.push_str(" Created"),
+      202 => s.push_str(" Accepted"),
+      203 => s.push_str(" Non-Authoritative Information"),
+      204 => s.push_str(" No Content"),
+      205 => s.push_str(" Reset Content"),
+      206 => s.push_str(" Partial Content"),
+      207 => s.push_str(" Multi-Status"),
+      208 => s.push_str(" Already Reported"),
+      226 => s.push_str(" IM Used"),
+      300 => s.push_str(" Multiple Choices"),
+      301 => s.push_str(" Moved Permanently"),
+      302 => s.push_str(" Found"),
+      303 => s.push_str(" See Other"),
+      304 => s.push_str(" Not Modified"),
+      305 => s.push_str(" Use Proxy"),
+      306 => s.push_str(" (Unused)"),
+      307 => s.push_str(" Temporary Redirect"),
+      308 => s.push_str(" Permanent Redirect"),
+      400 => s.push_str(" Bad Request"),
+      401 => s.push_str(" Unauthorized"),
+      402 => s.push_str(" Payment Required"),
+      403 => s.push_str(" Forbidden"),
+      404 => s.push_str(" Not Found"),
+      405 => s.push_str(" Method Not Allowed"),
+      406 => s.push_str(" Not Acceptable"),
+      407 => s.push_str(" Proxy Authentication Required"),
+      408 => s.push_str(" Request Timeout"),
+      409 => s.push_str(" Conflict"),
+      410 => s.push_str(" Gone"),
+      411 => s.push_str(" Length Required"),
+      412 => s.push_str(" Precondition Failed"),
+      413 => s.push_str(" Content Too Large"),
+      414 => s.push_str(" URI Too Long"),
+      415 => s.push_str(" Unsupported Media Type"),
+      416 => s.push_str(" Range Not Satisfiable"),
+      417 => s.push_str(" Expectation Failed"),
+      418 => s.push_str(" (Unused)"),
+      421 => s.push_str(" Misdirected Request"),
+      422 => s.push_str(" Unprocessable Content"),
+      423 => s.push_str(" Locked"),
+      424 => s.push_str(" Failed Dependency"),
+      425 => s.push_str(" Too Early"),
+      426 => s.push_str(" Upgrade Required"),
+      428 => s.push_str(" Precondition Required"),
+      429 => s.push_str(" Too Many Requests"),
+      431 => s.push_str(" Request Header Fields Too Large"),
+      451 => s.push_str(" Unavailable For Legal Reasons"),
+      500 => s.push_str(" Internal Server Error"),
+      501 => s.push_str(" Not Implemented"),
+      502 => s.push_str(" Bad Gateway"),
+      503 => s.push_str(" Service Unavailable"),
+      504 => s.push_str(" Gateway Timeout"),
+      505 => s.push_str(" HTTP Version Not Supported"),
+      506 => s.push_str(" Variant Also Negotiates"),
+      507 => s.push_str(" Insufficient Storage"),
+      508 => s.push_str(" Loop Detected"),
+      510 => s.push_str(" Not Extended (OBSOLETED)"),
+      511 => s.push_str(" Network Authentication Required"),
+      _ => s.push_str(" Unassigned"),
+    };
+    s
   }
 
   // Session block
@@ -751,6 +744,85 @@ impl Action {
     false
   }
 
+  
+  // Lang block
+  // Get the correct default user language
+  pub fn set_lang_id(&mut self, lang_id: Option<u8>) {
+    let key = "lang_id".to_owned();
+    match lang_id {
+      None => match self.get_lang_id() {
+        Some(lang_id) => self.lang_id = lang_id,
+        None => {
+          let lang_id = DEFAULT_LANG;
+          self.session_set(key, Data::U8(lang_id));
+          self.lang_id = lang_id;
+        },
+      },
+      Some(lang_id) => match self.get_lang_id() {
+        Some(s_lang_id) => {
+          let l_id = s_lang_id;
+          if l_id != lang_id {
+            self.session_set(key, Data::U8(lang_id));
+          }
+          self.lang_id = lang_id
+        },
+        None => {
+          self.session_set(key, Data::U8(lang_id));
+          self.lang_id = lang_id
+        },
+      },
+    }
+  }
+
+  // Get current language code
+  pub fn lang_get_code(&self) -> String {
+    self.langs.borrow().get(&self.lang_id).unwrap().code.clone()
+  }
+
+  pub fn get_lang_view(&self, lang_id: u8) -> Data {
+    let sort = self.sort.borrow();
+    let mut vec= Vec::with_capacity(sort.len());
+    for lang in sort.iter() {
+      vec.push(lang.clone());
+    }
+    Data::VecLang((lang_id, vec))
+  }
+
+  // Load local translation for current controller
+  pub fn lang_load(&mut self, module: &String, class: &String) {
+    let i = self.i18n.borrow();
+    if let Some(v) = i.get(&self.lang_id) {
+      if let Some(v) = v.get(module) {
+        if let Some(v) = v.get(class) {
+          self.data = Some(Rc::clone(v));
+        }
+      }
+    }
+  }
+
+  // Get a translation by key
+  pub fn lang_get(&self, key: &String) -> String {
+    match &self.data {
+      Some(val) => {
+        match val.borrow().get(key) {
+          Some(v) => Action::htmlencode(v),
+          None => Action::htmlencode(key),
+        }
+      },
+      None => Action::htmlencode(key),
+    }
+  }
+
+  // Replace special html text
+  pub fn htmlencode(text: &String) -> String {
+    let mut text = text.replace("&", "&amp;");
+    text = text.replace("\"", "&quot;");
+    text = text.replace("'", "&apos;");
+    text = text.replace("<", "&lt;");
+    text = text.replace(">", "&gt;");
+    text
+  }
+  
   // Main block
   // Start CRM system
   pub fn start(&mut self) -> Answer {
@@ -774,7 +846,7 @@ impl Action {
     if let Some(data) = self.cache_get(&key) {
       if let Data::String(r) = data {
         let permanently = if r.starts_with("1") { true } else { false };
-        self.set_redirect(r[1..].to_owned(), permanently);
+        self.set_redirect(&r[1..], permanently);
         return None;
       }
     }
@@ -791,7 +863,7 @@ impl Action {
       let c = if code { "1" } else { "0" };
       let permanently = if code { true } else { false };
       let value = format!("{}{}", c, redirect);
-      self.set_redirect(redirect, permanently);
+      self.set_redirect(&redirect, permanently);
       self.cache_set(key, Data::String(value));
       return None;
     }
@@ -864,7 +936,7 @@ impl Action {
   }
 
   // Start CRM system with fixed struct
-  fn start_route(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+  fn start_route(&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     // Get Access
     let access = self.get_access(module, class, action);
 
@@ -877,25 +949,22 @@ impl Action {
     if internal {
       return Answer::String("not_found".to_owned());
     }
-    self.set_redirect("/index/index/not_found".to_owned(), false);
+    self.set_redirect("/index/index/not_found", false);
     Answer::None
   }
 
   // Load internal controller
   pub fn load(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>) -> Answer {
-    self.start_route(module, class, action, params, data, true)
+    self.start_route(&module.to_owned(), &class.to_owned(), &action.to_owned(), &params.to_owned(), data, true)
   }
 
   // Run controller
-  fn run (&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
-    self.module = module.to_owned();
-    self.class = class.to_owned();
-    self.action = action.to_owned();
-    match module {
-      "admin" => match class {
+  fn run (&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+    match module as &str {
+      "admin" => match class as &str {
         "index" => {
-          let mut app = super::admin::index::App::new(self);
-            match action {
+          let mut app = super::admin::index::App::new(self, module, class);
+          match action as &str {
             "index" => return app.index(params, data, internal),
             "main" => return app.main(params, data, internal),
             _ => {}
@@ -903,10 +972,17 @@ impl Action {
         },
         _ => {},
       },
-      "index" => match class {
+      "index" => match class as &str {
+        "cart" => {
+          let mut app = super::index::cart::App::new(self, module, class);
+          match action as &str {
+            "index" => return app.index(params, data, internal),
+            _ => {}
+          };
+        },
         "index" => {
-          let mut app = super::index::index::App::new(self);
-            match action {
+          let mut app = super::index::index::App::new(self, module, class);
+          match action as &str {
             "index" => return app.index(params, data, internal),
             "head" => return app.head(params, data, internal),
             "foot" => return app.foot(params, data, internal),
@@ -914,16 +990,9 @@ impl Action {
             _ => {}
           };
         },
-        "cart" => {
-          let mut app = super::index::cart::App::new(self);
-            match action {
-            "index" => return app.index(params, data, internal),
-            _ => {}
-          };
-        },
         "menu" => {
-          let mut app = super::index::menu::App::new(self);
-            match action {
+          let mut app = super::index::menu::App::new(self, module, class);
+          match action as &str {
             "header" => return app.header(params, data, internal),
             "products" => return app.products(params, data, internal),
             "list" => return app.list(params, data, internal),
@@ -933,8 +1002,8 @@ impl Action {
           };
         },
         "search" => {
-          let mut app = super::index::search::App::new(self);
-            match action {
+          let mut app = super::index::search::App::new(self, module, class);
+          match action as &str {
             "main" => return app.main(params, data, internal),
             "small" => return app.small(params, data, internal),
             _ => {}
@@ -942,17 +1011,17 @@ impl Action {
         },
         _ => {},
       },
-      "user" => match class {
+      "user" => match class as &str {
         "admin" => {
-          let mut app = super::user::admin::App::new(self);
-            match action {
+          let mut app = super::user::admin::App::new(self, module, class);
+          match action as &str {
             "index" => return app.index(params, data, internal),
             _ => {}
           };
         },
         "index" => {
-          let mut app = super::user::index::App::new(self);
-            match action {
+          let mut app = super::user::index::App::new(self, module, class);
+          match action as &str {
             "menu" => return app.menu(params, data, internal),
             "up" => return app.up(params, data, internal),
             _ => {}
@@ -965,81 +1034,4 @@ impl Action {
     Answer::None
   }
 
-  // Lang block
-  // Get the correct default user language
-  pub fn set_lang_id(&mut self, lang_id: Option<u8>) {
-    let key = "lang_id".to_owned();
-    match lang_id {
-      None => match self.get_lang_id() {
-        Some(lang_id) => self.lang_id = lang_id,
-        None => {
-          let lang_id = DEFAULT_LANG;
-          self.session_set(key, Data::U8(lang_id));
-          self.lang_id = lang_id;
-        },
-      },
-      Some(lang_id) => match self.get_lang_id() {
-        Some(s_lang_id) => {
-          let l_id = s_lang_id;
-          if l_id != lang_id {
-            session.set(key, Data::U8(lang_id));
-          }
-          self.lang_id = lang_id
-        },
-        None => {
-          session.set(key, Data::U8(lang_id));
-          self.lang_id = lang_id
-        },
-      },
-    }
-  }
-
-  // Get current language code
-  pub fn lang_get_code(&self) -> String {
-    self.langs.borrow().get(&self.lang_id).unwrap().code.clone()
-  }
-
-  pub fn get_lang_view(&self, lang_id: u8) -> Data {
-    let sort = self.sort.borrow();
-    let mut vec= Vec::with_capacity(sort.len());
-    for lang in sort.iter() {
-      vec.push(lang.clone());
-    }
-    Data::VecLang((lang_id, vec))
-  }
-
-  // Load local translation for current controller
-  pub fn lang_load(&mut self, module: &String, class: &String) {
-    let i = self.i18n.borrow();
-    if let Some(v) = i.get(&self.lang_id) {
-      if let Some(v) = v.get(module) {
-        if let Some(v) = v.get(class) {
-          self.data = Some(Rc::clone(v));
-        }
-      }
-    }
-  }
-
-  // Get a translation by key
-  pub fn lang_get(&self, key: &String) -> String {
-    match &self.data {
-      Some(val) => {
-        match val.borrow().get(key) {
-          Some(v) => Action::htmlencode(v),
-          None => Action::htmlencode(key),
-        }
-      },
-      None => Action::htmlencode(key),
-    }
-  }
-
-  // Replace special html text
-  pub fn htmlencode(text: &String) -> String {
-    let mut text = text.replace("&", "&amp;");
-    text = text.replace("\"", "&quot;");
-    text = text.replace("'", "&apos;");
-    text = text.replace("<", "&lt;");
-    text = text.replace(">", "&gt;");
-    text
-  }
 }

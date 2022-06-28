@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::read_to_string};
 
-use super::{action::{Answer, Data}, lang::Lang};
+use super::action::{Answer, Data, Action};
 
 // Processing of html templates (Templater)
 pub struct View {
@@ -16,10 +16,11 @@ impl View {
   }
 
   // Rendering template
-  pub fn out(&self, view: String, data: &HashMap<String, Data>) -> Answer {
+  pub fn out(&self, view: &str, data: &HashMap<String, Data>) -> Answer {
     let file = format!("{}view_{}.html", self.dir, view);
     // Read data from template
     if let Ok(mut view) = read_to_string(&file) {
+      view.reserve_exact(view.capacity()*2);
       // Replase special marker
       for (key, data) in data {
         match data {
@@ -47,7 +48,7 @@ impl View {
                     let k = format!("<?={}.code?>", key);
                     v = v.replace(&k, &lang.code);
                     let k = format!("<?={}.name?>", key);
-                    v = v.replace(&k, &Lang::htmlencode(&lang.name));
+                    v = v.replace(&k, &Action::htmlencode(&lang.name));
                     let k = format!("<?={}.selected?>", key);
                     if *lang_id == lang.lang_id {
                       v = v.replace(&k, "selected");

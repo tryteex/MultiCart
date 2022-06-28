@@ -6,11 +6,11 @@ pub struct App<'a> {
   view: View, action: &'a mut Action,
 }
 
-impl<'a> App<'a> {
-  pub fn new(action: &mut Action) -> App {
-    let dir = format!("{}/app/{}/{}/", action.path, &action.module, &action.class);
+impl App<'_> {
+  pub fn new<'a>(action: &'a mut Action, module: &'a String, class: &'a String) -> App<'a> {
+    let dir = format!("{}/app/{}/{}/", action.path, module, class);
     let view = View::new(dir);
-    action.lang_load(&action.module, &action.class);
+    action.lang_load(module, class);
     App { view, action}
   }
 
@@ -20,6 +20,6 @@ impl<'a> App<'a> {
     data.insert("enter".to_owned(), Data::String(self.action.lang_get(&"enter".to_owned())));
     data.insert("lang".to_owned(), self.action.get_lang_view(self.action.lang_id));
     data.insert("lang_id".to_owned(), Data::String(self.action.lang_id.to_string()));
-    self.view.out("login".to_owned(), data)
+    self.view.out("login", data)
   }
 }

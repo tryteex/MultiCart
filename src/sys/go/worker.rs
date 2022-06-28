@@ -78,8 +78,8 @@ impl Worker {
       // Indication of read data
       if !i18n.load {
         // Load enable languages
-        let text = format!("SELECT lang_id, lang, code, name FROM lang WHERE enable ORDER BY sort");
-        match sql.query(&text, &[]) {
+        let text = "SELECT lang_id, lang, code, name FROM lang WHERE enable ORDER BY sort";
+        match sql.query(text, &[]) {
           Ok(res) => {
             for row in res {
               let lang_id: i64 = row.get(0);

@@ -49,7 +49,7 @@ impl I18n {
   pub fn load_lang(&mut self, dir: &String) -> Result<(), Error> {
     let dir = format!("{}app/", dir);
     // Read dir with application data
-    match read_dir(format!("{}", dir)) {
+    match read_dir(dir) {
       Ok(d1) => {
         // Get all dir in the "module" directory
         for p1 in d1 {

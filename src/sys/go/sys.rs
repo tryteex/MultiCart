@@ -38,7 +38,7 @@ impl Sys {
     let mut action = Action::new(sql, salt, storage, i18n, param, stdin, dir, langs, sort);
     let text = match action.start() {
       // Answer::Raw(answer) => answer,
-      Answer::String(answer) => answer.as_bytes().to_vec(),
+      Answer::String(answer) => answer.into_bytes(),
       Answer::None => Vec::new(),
     };
     action.stop();
@@ -62,19 +62,18 @@ impl Sys {
     let time = Utc::now() + Duration::seconds(action.set_cookie.time.into());
     let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
     answer.push(format!("Set-Cookie: {}={}; Expires={}; Max-Age={}; path=/; domain={}; Secure; SameSite=none\r\n", action.set_cookie.key, action.set_cookie.value, date, action.set_cookie.time, action.host));
-    // delete temp files
-    for (_, val) in &action.file {
-      for f in val {
-        remove_file(&f.tmp).unwrap_or_default();
-      }
-    }
     answer.push("Connection: keep-alive\r\n".to_owned());
     answer.push(format!("Content-Type: text/html; charset=utf-8\r\n"));
     answer.push(format!("Content-Length: {}\r\n", text.len()));
     answer.push("\r\n".to_owned());
     let mut answer = answer.join("").as_bytes().to_vec();
     answer.extend_from_slice(&text[..]);
-
+    // delete temp files
+    for (_, val) in &action.file {
+      for f in val {
+        remove_file(&f.tmp).unwrap_or_default();
+      }
+    }
     answer
   }
 }

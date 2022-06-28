@@ -185,7 +185,7 @@ impl Go {
       let init_read = RwLock::read(&g.init).unwrap();
       answer = format!("{} {} ok:", init_read.id, str);
     }
-    if let Err(_) = stream.write_all(&answer.as_bytes().to_vec()) { }
+    if let Err(_) = stream.write_all(&answer.into_bytes()) { }
   }
 
   // Main loop to strating fastCGI and CRM server
