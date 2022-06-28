@@ -123,31 +123,31 @@ impl Action {
     let mut file = HashMap::with_capacity(16);
     let mut cookie = HashMap::with_capacity(16);
 
-    let key = "HTTP_X_REQUESTED_WITH".to_owned();
-    let ajax = if param.contains_key(&key) && param.get(&key).unwrap().to_lowercase().eq(&"xmlhttprequest".to_owned()) { true } else { false };
-    let key = "HTTP_HOST".to_owned();
-    let host = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
-    let key = "REQUEST_SCHEME".to_owned();
-    let scheme = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "https".to_owned() };
-    let key = "HTTP_USER_AGENT".to_owned();
-    let agent = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
-    let key = "HTTP_REFERER".to_owned();
-    let referer = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
-    let key = "REMOTE_ADDR".to_owned();
-    let ip = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
-    let key = "REQUEST_METHOD".to_owned();
-    let method = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
-    let key = "REDIRECT_URL".to_owned();
-    let url = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "HTTP_X_REQUESTED_WITH";
+    let ajax = if param.contains_key(key) && param.get(key).unwrap().to_lowercase().eq(&"xmlhttprequest".to_owned()) { true } else { false };
+    let key = "HTTP_HOST";
+    let host = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "REQUEST_SCHEME";
+    let scheme = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "https".to_owned() };
+    let key = "HTTP_USER_AGENT";
+    let agent = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "HTTP_REFERER";
+    let referer = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "REMOTE_ADDR";
+    let ip = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "REQUEST_METHOD";
+    let method = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "REDIRECT_URL";
+    let url = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
     let url = decode(&url.splitn(2, '?').next().unwrap().to_owned()).unwrap_or_default().to_string();
-    let key = "DOCUMENT_ROOT".to_owned();
-    let path = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { dir.to_owned() };
+    let key = "DOCUMENT_ROOT";
+    let path = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { dir.to_owned() };
     let site = format!("{}://{}", scheme, host);
 
     // Extract GET data 
-    let key = "QUERY_STRING".to_owned();
-    if param.contains_key(&key) {
-      let val = param.get(&key).unwrap();
+    let key = "QUERY_STRING";
+    if param.contains_key(key) {
+      let val = param.get(key).unwrap();
       let gets:Vec<&str> = val.split("&").collect();
       for v in gets {
         let key: Vec<&str> = v.splitn(2, "=").collect();
@@ -158,9 +158,9 @@ impl Action {
       }
     }
     // Extract COOKIE data 
-    let key = "HTTP_COOKIE".to_owned();
-    if param.contains_key(&key) {
-      let val = param.get(&key).unwrap();
+    let key = "HTTP_COOKIE";
+    if param.contains_key(key) {
+      let val = param.get(key).unwrap();
       let cooks:Vec<&str> = val.split("; ").collect();
       for v in cooks {
         let key: Vec<&str> = v.splitn(2, "=").collect();
@@ -170,8 +170,8 @@ impl Action {
       }
     }
     // Extract POST data 
-    let key = "CONTENT_TYPE".to_owned();
-    let content = if param.contains_key(&key) { param.get(&key).unwrap().to_owned() } else { "".to_owned() };
+    let key = "CONTENT_TYPE";
+    let content = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
     if content.len() > 0 {
       if let "application/x-www-form-urlencoded" = &content[..] {
         //Simple post
@@ -235,10 +235,10 @@ impl Action {
     // session init
     let mut session_change = false;
     let session_data = HashMap::new();
-    let cook_key = "tryteex".to_owned();
+    let cook_key = "tryteex";
 
     // Get and check cookie
-    let mut session = match cookie.get(&cook_key) {
+    let mut session = match cookie.get(cook_key) {
       Some(s) => {
         match Regex::new(r"^[a-f0-9]{128}$") {
           Ok(rx) => {
@@ -294,7 +294,7 @@ impl Action {
 
       // response
       http_code: None,
-      set_cookie: Cookie { key: cook_key, value: session.clone(), time: ON_YEAR },
+      set_cookie: Cookie { key: cook_key.to_owned(), value: session.clone(), time: ON_YEAR },
       location: None,
       css: Vec::with_capacity(16),
       js: Vec::with_capacity(16),
@@ -538,8 +538,8 @@ impl Action {
   // Session block
   // Get user lang_id
   pub fn get_lang_id(&self) -> Option<u8> {
-    let key = "lang_id".to_owned();
-    match self.session_get(&key) {
+    let key = "lang_id";
+    match self.session_get(key) {
         Some(d) => match d {
           Data::U8(v) => Some(*v),
           Data::I64(v) => Some(u8(*v).unwrap()),
@@ -556,7 +556,7 @@ impl Action {
   }
 
   // Get a session date
-  pub fn session_get(&self, key: &String) -> Option<&Data> {
+  pub fn session_get(&self, key: &str) -> Option<&Data> {
     self.session_data.get(key)
   }
 
@@ -693,8 +693,8 @@ impl Action {
   // Checking access to the web controller
   pub fn get_access(&mut self, module: &str, class: &str, action: &str) -> bool {
     // System user always has access
-    let key = "system".to_owned();
-    if let Some(system) = self.session_get(&key) {
+    let key = "system";
+    if let Some(system) = self.session_get(key) {
       if let Data::Bool(v) = system {
         if *v { return true; };
       }
@@ -897,7 +897,7 @@ impl Action {
       let params: String = row.get(3);
       let lang_id: i64 = row.get(4);
       let lang_id = u8(lang_id).unwrap();
-      let value = format!("{}:{}:{}:{}:{}", module, class, action, params, lang_id.to_owned());
+      let value = format!("{}:{}:{}:{}:{}", module, class, action, params, lang_id.to_string());
       self.cache_set(key, Data::String(value));
       return Some((module, class, action, params, Some(lang_id)));
     }

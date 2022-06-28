@@ -63,10 +63,10 @@ impl Sys {
     let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
     answer.push(format!("Set-Cookie: {}={}; Expires={}; Max-Age={}; path=/; domain={}; Secure; SameSite=none\r\n", action.set_cookie.key, action.set_cookie.value, date, action.set_cookie.time, action.host));
     answer.push("Connection: keep-alive\r\n".to_owned());
-    answer.push(format!("Content-Type: text/html; charset=utf-8\r\n"));
+    answer.push("Content-Type: text/html; charset=utf-8\r\n".to_owned());
     answer.push(format!("Content-Length: {}\r\n", text.len()));
     answer.push("\r\n".to_owned());
-    let mut answer = answer.join("").as_bytes().to_vec();
+    let mut answer = answer.join("").into_bytes();
     answer.extend_from_slice(&text[..]);
     // delete temp files
     for (_, val) in &action.file {

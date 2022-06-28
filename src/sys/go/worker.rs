@@ -49,7 +49,7 @@ impl Worker {
       max_connection = init.sys.max_connection.into();
       let db = &init.db;
       tz = format!("SET timezone TO {};", escape_literal(&init.time_zone));
-      conn = format!("host='{}' port='{}' dbname='{}' user='{}' password='{}' connect_timeout=2 application_name='{} {}' options='--client_encoding=UTF8'", db.host, &db.port, &db.name, &db.user, &db.pwd, &env!("CARGO_PKG_NAME").to_owned(), &env!("CARGO_PKG_VERSION").to_owned());
+      conn = format!("host='{}' port='{}' dbname='{}' user='{}' password='{}' connect_timeout=2 application_name='{} {}' options='--client_encoding=UTF8'", db.host, &db.port, &db.name, &db.user, &db.pwd, &env!("CARGO_PKG_NAME"), &env!("CARGO_PKG_VERSION"));
     }
     // Connect to the database
     let mut sql = match Client::connect(&conn, NoTls) {
