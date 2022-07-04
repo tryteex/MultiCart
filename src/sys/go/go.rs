@@ -1,12 +1,11 @@
-use std::{net::{TcpListener, TcpStream, Shutdown}, time::Duration, thread::{self, JoinHandle}, io::{Read, Write, ErrorKind}, sync::mpsc};
+use std::{net::{TcpListener, TcpStream, Shutdown}, time::Duration, thread::{JoinHandle, self}, io::{Read, Write, ErrorKind}, sync::mpsc};
 use std::{sync::{Arc, Mutex, RwLock}};
 
-use crate::{sys::{init::Init, log::LogApp}};
+use crate::sys::{init::Init, log::LogApp};
 
 use super::{worker::{Worker, Message}, storage::Storage, i18n::I18n};
 
 pub const MS1: std::time::Duration = Duration::from_millis(1);
-
 // Main struct for program
 pub struct Go {
   pub init: Arc<RwLock<Init>>,                                      // Init system
@@ -50,8 +49,10 @@ impl Go {
 
       // Start workers
       let w = Worker::new(i, Arc::clone(&go), Arc::clone(&receiver));
-      let mut g = Mutex::lock(&go).unwrap();
-      g.connections.push((w, sender));
+      {
+        let mut g = Mutex::lock(&go).unwrap();
+        g.connections.push((w, sender));
+      }
     }
 
     // Start threads to listenning to the connections
@@ -159,8 +160,10 @@ impl Go {
       main_read = g.main.take();
       for i in 0..g.max_connection {
         let (item, sender) = g.connections.get(i).unwrap();
-        let mut w = Mutex::lock(item).unwrap();
-        w.stop = true;
+        {
+          let mut w = Mutex::lock(item).unwrap();
+          w.stop = true;  
+        }
         sender.send(Message::Terminate).unwrap()
       }
     }
@@ -243,31 +246,45 @@ impl Go {
               // If KeepConnect - wait next client from WEB server
               index = None;
               {
-                let mut g = Mutex::lock(&move_go).unwrap();
-                if g.stop == true {
-                  break;
+                let use_connection;
+                let max_connection;
+                {
+                  let g = Mutex::lock(&move_go).unwrap();
+                  if g.stop == true {
+                    break;
+                  }
+                  use_connection = g.use_connection;
+                  max_connection = g.max_connection;
                 }
                 // Wait free thread
-                if g.use_connection < g.max_connection {
-                  g.use_connection += 1;
+                if use_connection < max_connection {
+                  {
+                    let mut g = Mutex::lock(&move_go).unwrap();
+                    g.use_connection += 1;  
+                  }
                   // Find thread
-                  for i in 0..g.max_connection {
+                  for i in 0..max_connection {
+                    let g = Mutex::lock(&move_go).unwrap();
                     let (item, _) = g.connections.get(i).unwrap();
-                    let mut w = Mutex::lock(item).unwrap();
-                    if w.start == false {
-                      w.start = true;
-                      index = Some(i);
-                      break;
+                    {
+                      let mut w = Mutex::lock(item).unwrap();
+                      if w.start == false {
+                        w.start = true;
+                        w.count = 0;
+                        index = Some(i);
+                        break;
+                      }
                     }
                   }
                   if let None = index {
+                    let g = Mutex::lock(&move_go).unwrap();
                     let log_read = RwLock::read(&g.log).unwrap();
                     log_read.exit_err(&LogApp::get_error(501, ""));
                   }
                 }
               }
               // If we found the free thread 
-              // We send signal for this founded ("sleeping") thread
+              // We send signal for this sleeping thread
               if let Some(ind) = index {
                 let g = Mutex::lock(&move_go).unwrap();
                 let (_, sender) = g.connections.get(ind).unwrap();

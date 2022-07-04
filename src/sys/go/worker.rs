@@ -7,7 +7,6 @@ use cast::u8;
 use crate::sys::log::LogApp;
 
 use super::{go::Go, fastcgi::{Record, FASTCGI_MAX_REQUEST_LEN, FastCGI, RecordType, HeaderType, ContentData}, sys::Sys, i18n::{LangItem, I18n}};
-
 // Message to threads
 pub enum Message {
   Terminate,          // Stop all threads
@@ -28,17 +27,18 @@ pub enum Status {
 
 // Worker of thread
 pub struct Worker {
-  pub id: usize,                                // ID Worker
+  pub id: usize,                                // Index of worker
   pub go: Arc<Mutex<Go>>,                       // Main struct
   pub start: bool,                              // Worker is started
   pub stop: bool,                               // Send the "stop" signal
   pub thread: Option<thread::JoinHandle<()>>,   // Thread 
   pub status: Status,                           // Status for the Worker
+  pub count: usize,                             // Number of completed request
 }
 
 impl Worker {
   // Constructor
-  pub fn new(id: usize, go: Arc<Mutex<Go>>, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Arc<Mutex<Worker>> {
+  pub fn new(id:usize, go: Arc<Mutex<Go>>, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Arc<Mutex<Worker>> {
     let conn;
     let max_connection: usize;
     let tz;
@@ -60,6 +60,7 @@ impl Worker {
           log.exit_err(&LogApp::get_error(350, &e.to_string()));
         },
     };
+    
     // Set timezone
     if tz.len() > 0 {
       if let Err(e) = sql.query(&tz, &[]) {
@@ -116,6 +117,7 @@ impl Worker {
       stop: false,
       thread: None,
       status: Status::None,
+      count: 0,
     };
     let worker = Arc::new(Mutex::new(worker));
     let worker_thread = Arc::clone(&worker);
@@ -144,7 +146,6 @@ impl Worker {
         // Waiting to receive a WEB server connection signal
         match wait.recv() {
           // WEB server is connected
-
           // Check message to thread
           Ok(message) => match message {
             Message::Job(stream) => {
@@ -160,11 +161,13 @@ impl Worker {
                 Rc::clone(&langs),
                 Rc::clone(&sort),
               );
-              let mut w = Mutex::lock(&worker_thread).unwrap();
-              w.start = false;
-              w.status = Status::None;
-              let mut g = Mutex::lock(&w.go).unwrap();
-              g.use_connection -= 1;
+              {
+                let mut w = Mutex::lock(&worker_thread).unwrap();
+                w.start = false;
+                w.status = Status::None;
+                let mut g = Mutex::lock(&w.go).unwrap();
+                g.use_connection -= 1;
+              }
             },
             Message::Terminate => break,
           },
@@ -234,7 +237,6 @@ impl Worker {
     let mut seek: usize = 0;
     let mut size: usize = 0;
     let mut need_read = true;
-    
     // Read data from the WEB server in the loop
     loop {
       // Check stop command
@@ -248,7 +250,7 @@ impl Worker {
       let record = match FastCGI::read_record(&mut seek, &mut size, &mut need_read, &mut buffer[..], &mut stream, max_connection) {
         RecordType::None => continue,
         RecordType::Some(record) => record,
-        RecordType::ErrorStream => break,
+        RecordType::ErrorStream | RecordType::StreamClosed => break,
       };
       // This command must go in a certain order
       match record.header.header_type {
@@ -260,6 +262,7 @@ impl Worker {
             break;
           }
           w.status = Status::Begin;
+
         },
         HeaderType::AbortRequest => {
           // Got "Abort" record
@@ -336,30 +339,33 @@ impl Worker {
               );
               {
                 let mut w = Mutex::lock(&worker).unwrap();
+                w.count += 1;
                 w.status = Status::End;  
               }
               // Write ansewer to the WEB server
               if let Some(record) = begin_record {
                 FastCGI::write_response(&record.header, answer, &mut stream).unwrap_or(());
-              }
-              // Check "KeepConnect" status
-              if let ContentData::BeginRequest(data) = &record.data {
-                if data.flags == 0 {
-                  // "KeepConnect" was not set
+                // Check "KeepConnect" status
+                if let ContentData::BeginRequest(data) = &record.data {
+                  if data.flags == 0 {
+                    // "KeepConnect" was not set
+                    break;
+                  }
+                  // "KeepConnect" was set
+                } else {
+                  // Something starange
                   break;
                 }
-                // "KeepConnect" was set
               } else {
+                // Something starange
                 break;
               }
-              
               // Clear Worker
               *begin_record = None;
               param_record.clear();
               *stdin_record = None;
               {
                 let mut w = Mutex::lock(&worker).unwrap();
-                w.start = false;
                 w.status = Status::None;
               }
               need_read = true;

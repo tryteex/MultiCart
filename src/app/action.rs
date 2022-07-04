@@ -674,7 +674,7 @@ impl Action {
           user_agent = {}
         WHERE
           session_id={}
-      ", self.user_id, data, self.db_escape(&self.ip), self.db_escape(&self.agent), self.session_id);
+      ", self.user_id, self.db_escape(&data), self.db_escape(&self.ip), self.db_escape(&self.agent), self.session_id);
       self.db_query(&sql);
     } else {
       // If date not changed, only update last visit time

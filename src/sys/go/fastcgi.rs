@@ -1,4 +1,4 @@
-use std::{net::TcpStream, time::Duration, thread, io::{ErrorKind, Read, Write, Error}, collections::HashMap, sync::Arc};
+use std::{net::TcpStream, time::Duration, thread, io::{ErrorKind, Read, Write, Error}, collections::HashMap, rc::Rc};
 
 use byteorder::{BigEndian, ByteOrder};
 use cast::{u8, u16, u32, usize};
@@ -15,6 +15,7 @@ pub struct Header
 }
 
 // FastCGI header type
+#[derive(Debug)]
 pub enum HeaderType {
   BeginRequest,
   AbortRequest,
@@ -55,7 +56,7 @@ pub enum ContentData {
   ErrorStream,
   Break,
   Unknown(Unknown),
-  Raw(Arc<Vec<u8>>, usize, u16),
+  Raw(Rc<Vec<u8>>, usize, u16),
   End(End),
 }
 
@@ -79,6 +80,7 @@ pub enum RecordType {
   None,
   Some(Record),
   ErrorStream,
+  StreamClosed,
 }
 
 // FastCGI Unknown request data
@@ -141,6 +143,7 @@ impl FastCGI {
             *seek = 0;
           }
         }
+        
         // Read data
         match stream.read(&mut buffer[*size..]) {
           Ok(n) => {
@@ -167,19 +170,11 @@ impl FastCGI {
               continue;
             },
             ErrorKind::WouldBlock => {
-              match FastCGI::read(seek, size, buffer, stream, max_connection) {
-                ReadStatus::Continue => {
-                  thread::sleep(MS1);
-                  *need_read = true;
-                  continue;
-                },
-                ReadStatus::Break => return RecordType::None,
-                ReadStatus::Result(record) => return RecordType::Some(record),
-                ReadStatus::Next => continue,
-                ReadStatus::ErrorStream => return RecordType::ErrorStream,
-              }
+              thread::sleep(MS1);
+              continue;
             },
-            _ =>break,
+            ErrorKind::ConnectionReset => return RecordType::StreamClosed,
+            _ => break,
           },
         };
       } else {
@@ -195,7 +190,7 @@ impl FastCGI {
         };
       }
     }
-    RecordType::None
+    RecordType::ErrorStream
   }
 
   // Decode one FastCGI record
@@ -472,7 +467,7 @@ impl FastCGI {
     let len = answer.len();
     let mut size: u16;
     let mut seek: usize = 0;
-    let pack = Arc::new(answer);
+    let pack = Rc::new(answer);
     // Split data to parts
     while seek < len {
       if seek + FASTCGI_MAX_CONTENT_LEN < len {
@@ -489,7 +484,7 @@ impl FastCGI {
           padding_length: 0,
           reserved: 0,
         },
-        data: ContentData::Raw(Arc::clone(&pack), seek, size),
+        data: ContentData::Raw(Rc::clone(&pack), seek, size),
       };
       data.extend_from_slice(&FastCGI::record_array(record)[..]);
       seek += usize(size);

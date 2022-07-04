@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex, RwLock}, cell::RefCell, rc::Rc, collections::HashMa
 use chrono::{Duration, Utc};
 use postgres::Client;
 
-use crate::app::{action::{Action, Answer}};
+use crate::app::action::{Action, Answer};
 use super::{worker::Worker, i18n::LangItem};
 
 // Wrapper for the fastCGI server
@@ -21,18 +21,21 @@ impl Sys {
     langs: Rc<RefCell<HashMap<u8, LangItem>>>, 
     sort: Rc<RefCell<Vec<LangItem>>>,
   ) -> Vec<u8> {
-
     let storage;
     let salt;
     let dir;
-    // Coonect the memory cache system
+    // Connect the memory cache system
     {
       let w = Mutex::lock(&worker).unwrap();
-      let g = Mutex::lock(&w.go).unwrap();
-      storage = Arc::clone(&g.storage);
-      let i = RwLock::read(&g.init).unwrap();
-      salt = i.salt.clone();
-      dir = i.dir.clone();
+      {
+        let g = Mutex::lock(&w.go).unwrap();
+        storage = Arc::clone(&g.storage);
+        {
+          let i = RwLock::read(&g.init).unwrap();
+          salt = i.salt.clone();
+          dir = i.dir.clone();
+        }
+      }
     }
     // Run CRM
     let mut action = Action::new(sql, salt, storage, i18n, param, stdin, dir, langs, sort);
@@ -40,9 +43,8 @@ impl Sys {
       // Answer::Raw(answer) => answer,
       Answer::String(answer) => answer.into_bytes(),
       Answer::None => Vec::new(),
-    };
-    action.stop();
-
+    }; 
+    action.stop(); 
     // Prepare answer to the WEB server
     let mut answer: Vec<String> = Vec::with_capacity(16);
     answer.push("HTTP/1.1 ".to_owned());
@@ -66,6 +68,7 @@ impl Sys {
     answer.push("Content-Type: text/html; charset=utf-8\r\n".to_owned());
     answer.push(format!("Content-Length: {}\r\n", text.len()));
     answer.push("\r\n".to_owned());
+
     let mut answer = answer.join("").into_bytes();
     answer.extend_from_slice(&text[..]);
     // delete temp files
