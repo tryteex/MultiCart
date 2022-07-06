@@ -3,7 +3,7 @@ use std::{sync::{Arc, Mutex, RwLock}};
 
 use crate::sys::{init::Init, log::LogApp};
 
-use super::{worker::{Worker, Message}, storage::Storage, i18n::I18n};
+use super::{worker::{Worker, Message}, storage::Storage, i18n::I18n, template::Template};
 
 pub const MS1: std::time::Duration = Duration::from_millis(1);
 // Main struct for program
@@ -17,6 +17,7 @@ pub struct Go {
   connections: Vec<(Arc<Mutex<Worker>>, mpsc::Sender<Message>)>,    // Connections from the WEB server
   pub storage: Arc<Mutex<Storage>>,                                 // Memory cache system
   pub i18n: Arc<Mutex<I18n>>,                                       // Translations
+  pub tpl: Arc<Mutex<Template>>,                                    // Templates system
 }
 
 impl Go {
@@ -38,6 +39,7 @@ impl Go {
       connections: Vec::with_capacity(max_connection),
       storage: Arc::new(Mutex::new(Storage::new())),
       i18n: Arc::new(Mutex::new(I18n::new())),
+      tpl: Arc::new(Mutex::new(Template::new())),
     };
 
     let go = Arc::new(Mutex::new(go));

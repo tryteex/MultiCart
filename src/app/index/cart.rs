@@ -1,24 +1,16 @@
 use std::collections::HashMap;
 
-use crate::app::{view::View, action::{Action, Data, Answer}};
+use crate::app::action::{Action, Data, Answer};
 
-pub struct App<'a> {
-  view: View, action: &'a mut Action,
-}
+pub struct App {}
 
-impl App<'_> {
-  pub fn new<'a>(action: &'a mut Action, module: &'a String, class: &'a String) -> App<'a> {
-    let dir = format!("{}/app/{}/{}/", action.path, module, class);
-    let view = View::new(dir);
-    action.lang_load(module, class);
-    App { view, action}
-  }
+impl App {
 
   // cart in header
-  pub fn index(&mut self, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+  pub fn index(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      self.action.set_redirect("/index/index/not_found", true);
+      action.set_redirect("/index/index/not_found", true);
     }
-    self.view.out("index", data)
+    action.out("index", data)
   }
 }

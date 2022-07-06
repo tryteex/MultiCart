@@ -6,7 +6,7 @@ use cast::u8;
 
 use crate::sys::log::LogApp;
 
-use super::{go::Go, fastcgi::{Record, FASTCGI_MAX_REQUEST_LEN, FastCGI, RecordType, HeaderType, ContentData}, sys::Sys, i18n::{LangItem, I18n}};
+use super::{go::Go, fastcgi::{Record, FASTCGI_MAX_REQUEST_LEN, FastCGI, RecordType, HeaderType, ContentData}, sys::Sys, i18n::{LangItem, I18n}, template::Template};
 // Message to threads
 pub enum Message {
   Terminate,          // Stop all threads
@@ -89,9 +89,8 @@ impl Worker {
               let name: String = row.get(3);
               let lang_id = u8(lang_id).unwrap();
               i18n.langs_code.insert(lang_code.clone(), lang_id);
-              let l = LangItem {lang_id, code: code.clone(), lang: lang_code.clone(), name: name.clone(), };
-              i18n.sort.push(l.clone());
-              i18n.langs.insert(lang_id, l);
+              let l = LangItem {lang_id, code, lang: lang_code, name, };
+              i18n.langs.push(l.clone());
             }
           },
           Err(e) => {
@@ -102,10 +101,19 @@ impl Worker {
         // Read translates
         if let Err(e) = i18n.load_lang(&init.dir) {
           let log = RwLock::read(&g.log).unwrap();
-          log.exit_err(&LogApp::get_error(352, &e.to_string()));
+          log.exit_err(&LogApp::get_error(370, &e.to_string()));
         };
         // Set indication of read data
         i18n.load = true;
+      }
+
+      let mut tpl = Mutex::lock(&g.tpl).unwrap();
+      if !tpl.load {
+        // Load templates
+        if let Err(e) = tpl.load_templates(&init.dir) {
+          let log = RwLock::read(&g.log).unwrap();
+          log.exit_err(&LogApp::get_error(380, &e.to_string()));
+        };
       }
     }
     let go_panic = Arc::clone(&go);
@@ -124,19 +132,20 @@ impl Worker {
     // Start the thread
     let thread = thread::spawn(move || {
       let sql = Rc::new(RefCell::new(sql));
-      let i18n_prepare: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>;
-      let langs: Rc<RefCell<HashMap<u8, LangItem>>>;
-      let sort: Rc<RefCell<Vec<LangItem>>>;
+      let i18n: HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>;
+      let langs: Vec<LangItem>;
+      let tpls: HashMap<String, HashMap<String, HashMap<String, String>>>;
       // Init variable for translations
       {
         let w = Mutex::lock(&worker_thread).unwrap();
         let g = Mutex::lock(&w.go).unwrap();
         let lang_lock = Mutex::lock(&g.i18n).unwrap();
-        let (l, s) = lang_lock.clone_lang();
-        langs = Rc::new(RefCell::new(l));
-        sort = Rc::new(RefCell::new(s));
-        i18n_prepare = Rc::new(RefCell::new(Worker::prepare_lang(lang_lock)));
+        langs = lang_lock.clone_lang();
+        i18n = Worker::prepare_lang(lang_lock);
+        let tpl_lock = Mutex::lock(&g.tpl).unwrap();
+        tpls = Worker::prepare_tpl(tpl_lock);
       }
+
       // Start the thread in an endless cycle
       loop {
         let mut begin_record: Option<Record> = None;
@@ -156,10 +165,10 @@ impl Worker {
                 Rc::clone(&sql), 
                 &mut begin_record, 
                 &mut param_record, 
-                &mut stdin_record, 
-                Rc::clone(&i18n_prepare),
-                Rc::clone(&langs),
-                Rc::clone(&sort),
+                &mut stdin_record,
+                &i18n,
+                &langs,
+                &tpls,
               );
               {
                 let mut w = Mutex::lock(&worker_thread).unwrap();
@@ -185,24 +194,41 @@ impl Worker {
     }
     worker
   }
-
-  // Prepare lang for thread
-  fn prepare_lang(i18n: MutexGuard<I18n>) -> HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>> {
-    let mut data: HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>> = HashMap::with_capacity(i18n.data.len());
+  
+  // Copy lang to each thread
+  fn prepare_lang(i18n: MutexGuard<I18n>) -> HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>> {
+    let mut data: HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>> = HashMap::with_capacity(i18n.data.len());
     for (lang_id, modules) in &i18n.data {
-      let mut vl: HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>> = HashMap::with_capacity(modules.len());
+      let mut vl: HashMap<String, HashMap<String, HashMap<String, String>>> = HashMap::with_capacity(modules.len());
       for (module, classes) in modules {
-        let mut v: HashMap<String, Rc<RefCell<HashMap<String, String>>>> = HashMap::with_capacity(classes.len());
+        let mut v: HashMap<String, HashMap<String, String>> = HashMap::with_capacity(classes.len());
         for (class, map) in classes {
           let mut m: HashMap<String, String> = HashMap::with_capacity(map.len());
           for (key, val) in map {
             m.insert(key.to_owned(), val.to_owned());
           }
-          v.insert(class.to_owned(), Rc::new(RefCell::new(m)));
+          v.insert(class.to_owned(), m);
         }
         vl.insert(module.to_owned(), v);
       }
       data.insert(*lang_id, vl);
+    }
+    data
+  }
+
+  // Copy lang to each thread
+  fn prepare_tpl(tpl: MutexGuard<Template>) -> HashMap<String, HashMap<String, HashMap<String, String>>> {
+    let mut data: HashMap<String, HashMap<String, HashMap<String, String>>> = HashMap::with_capacity(tpl.tpls.len());
+    for (module, classes) in &tpl.tpls {
+      let mut v: HashMap<String, HashMap<String, String>> = HashMap::with_capacity(classes.len());
+      for (class, map) in classes {
+        let mut m: HashMap<String, String> = HashMap::with_capacity(map.len());
+        for (key, val) in map {
+          m.insert(key.to_owned(), val.to_owned());
+        }
+        v.insert(class.to_owned(), m);
+      }
+      data.insert(module.to_owned(), v);
     }
     data
   }
@@ -229,9 +255,9 @@ impl Worker {
     begin_record: &mut Option<Record>, 
     param_record: &mut HashMap<String, String>, 
     stdin_record: &mut Option<Vec<u8>>,
-    i18n_prepare: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
-    langs: Rc<RefCell<HashMap<u8, LangItem>>>,
-    sort: Rc<RefCell<Vec<LangItem>>>,
+    i18n: &HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>,
+    langs: &Vec<LangItem>,
+    tpls: &HashMap<String, HashMap<String, HashMap<String, String>>>,
   ){
     let mut buffer: [u8; FASTCGI_MAX_REQUEST_LEN] = [0; FASTCGI_MAX_REQUEST_LEN];
     let mut seek: usize = 0;
@@ -333,9 +359,9 @@ impl Worker {
                 Rc::clone(&sql), 
                 param_record, 
                 stdin_record, 
-                Rc::clone(&i18n_prepare), 
-                Rc::clone(&langs),
-                Rc::clone(&sort),
+                i18n, 
+                langs, 
+                tpls, 
               );
               {
                 let mut w = Mutex::lock(&worker).unwrap();

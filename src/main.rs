@@ -7,6 +7,7 @@ mod sys {
     pub mod sys;
     pub mod storage;
     pub mod i18n;
+    pub mod template;
   }
   pub mod log;
   pub mod help;
@@ -27,7 +28,6 @@ mod app {
     pub mod index;
   }
   pub mod action;
-  pub mod view;
 }
 
 use std::{env, sync::{Arc, RwLock}};

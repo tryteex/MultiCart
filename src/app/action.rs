@@ -10,7 +10,7 @@ use regex::Regex;
 use serde_json::{Value, Map, Number};
 use sha3::{Digest, Sha3_512};
 
-use crate::{sys::go::{storage::Storage, i18n::LangItem}};
+use crate::sys::go::{storage::Storage, i18n::LangItem};
 
 pub const ON_YEAR: u32 = 31622400;
 pub const DEFAULT_LANG: u8 = 0;
@@ -57,7 +57,7 @@ pub struct Cookie {
 }
 
 // Main CRM struct
-pub struct Action {
+pub struct Action<'a> {
   pub salt: String,                         // Salt for password
 
   db_sql: Rc<RefCell<Client>>,              // Postgresql connection
@@ -82,6 +82,10 @@ pub struct Action {
   pub post: HashMap<String, String>,        // POST data
   pub file: HashMap<String, Vec<WebFile>>,  // FILE data
   pub cookie: HashMap<String, String>,      // Cookies
+  pub module: String,                       // Startup module
+  pub class: String,                        // Startup class
+  pub action: String,                       // Startup class
+  pub params: String,                       // Startup class
 
   pub set_cookie: Cookie,                   // Cookie
   location: Option<Location>,               // Redirect (HTTP Location)
@@ -96,26 +100,27 @@ pub struct Action {
   session_data: HashMap<String, Data>,      // User data
   session_change: bool,                     // User data is changed
 
-  pub lang_id: u8,                                                                                              // User lang_id 
-  i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>,       // Global ref to tranlations
-  data: Option<Rc<RefCell<HashMap<String, String>>>>,                                                           // Local copy of translation for web controller
-  langs: Rc<RefCell<HashMap<u8, LangItem>>>,                                                                    // List of enable langs
-  sort: Rc<RefCell<Vec<LangItem>>>,                                                                             // Sorted list of langs
+  pub lang_id: u8,                          // User lang_id 
+  i18n: &'a HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>,   // Global ref to tranlations
+  langs: &'a Vec<LangItem>,                 // Sorted list of langs
+
+  tpls: &'a HashMap<String, HashMap<String, HashMap<String, String>>>,                // Global ref to templates
+  current: Vec<(String, String)>,           // Current module and class
 }
 
-impl Action {
+impl<'a> Action<'a> {
   // Constructor
   pub fn new(
     sql: Rc<RefCell<Client>>, 
     salt: String, 
     storage: Arc<Mutex<Storage>>, 
-    i18n: Rc<RefCell<HashMap<u8, HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
-    param: &HashMap<String, String>, 
-    stdin: &Option<Vec<u8>>, 
+    param: &'a HashMap<String, String>, 
+    stdin: &'a Option<Vec<u8>>, 
     dir: String,
-    langs: Rc<RefCell<HashMap<u8, LangItem>>>,
-    sort: Rc<RefCell<Vec<LangItem>>>,
-  ) -> Action {
+    i18n: &'a HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>,
+    langs: &'a Vec<LangItem>,
+    tpls: &'a HashMap<String, HashMap<String, HashMap<String, String>>>,
+  ) -> Action<'a>{
 
     // Request init
     let mut get = HashMap::with_capacity(16);
@@ -291,6 +296,10 @@ impl Action {
       post,
       cookie,
       file,
+      module: "".to_owned(),
+      class: "".to_owned(),
+      action: "".to_owned(),
+      params: "".to_owned(),
 
       // response
       http_code: None,
@@ -310,9 +319,11 @@ impl Action {
       // lang
       lang_id: DEFAULT_LANG,
       i18n,
-      data: None,
       langs,
-      sort,
+
+      // view
+      tpls,
+      current: Vec::with_capacity(32),
     };
     
     // Load the user data
@@ -631,7 +642,8 @@ impl Action {
   // Encode user data to json
   fn session_set_value(&self, val: &Data) -> Value {
     match val {
-      Data::None | Data::VecLang(_) => Value::Null,
+      Data::None | Data::VecLang(_) 
+      => Value::Null,
       Data::U8(v) => Value::Number(Number::from(*v)),
       Data::I64(v) => Value::Number(Number::from(*v)),
       Data::U64(v) => Value::Number(Number::from(*v)),
@@ -774,62 +786,20 @@ impl Action {
     }
   }
 
-  // Get current language code
-  pub fn lang_get_code(&self) -> String {
-    self.langs.borrow().get(&self.lang_id).unwrap().code.clone()
-  }
-
   pub fn get_lang_view(&self, lang_id: u8) -> Data {
-    let sort = self.sort.borrow();
-    let mut vec= Vec::with_capacity(sort.len());
-    for lang in sort.iter() {
+    let mut vec= Vec::with_capacity(self.langs.len());
+    for lang in self.langs.iter() {
       vec.push(lang.clone());
     }
     Data::VecLang((lang_id, vec))
   }
 
-  // Load local translation for current controller
-  pub fn lang_load(&mut self, module: &String, class: &String) {
-    let i = self.i18n.borrow();
-    if let Some(v) = i.get(&self.lang_id) {
-      if let Some(v) = v.get(module) {
-        if let Some(v) = v.get(class) {
-          self.data = Some(Rc::clone(v));
-        }
-      }
-    }
-  }
-
-  // Get a translation by key
-  pub fn lang_get(&self, key: &String) -> String {
-    match &self.data {
-      Some(val) => {
-        match val.borrow().get(key) {
-          Some(v) => Action::htmlencode(v),
-          None => Action::htmlencode(key),
-        }
-      },
-      None => Action::htmlencode(key),
-    }
-  }
-
-  // Replace special html text
-  pub fn htmlencode(text: &String) -> String {
-    let mut text = text.replace("&", "&amp;");
-    text = text.replace("\"", "&quot;");
-    text = text.replace("'", "&apos;");
-    text = text.replace("<", "&lt;");
-    text = text.replace(">", "&gt;");
-    text
-  }
-  
   // Main block
   // Start CRM system
   pub fn start(&mut self) -> Answer {
     // Encode routes
     if let Some((module, class, action, params, lang_id)) = self.extract_route() {
       self.set_lang_id(lang_id);
-      self.lang_code = self.lang_get_code();
       let mut data: HashMap<String, Data> = HashMap::with_capacity(256);
       // Start CRM system with fixed struct
       return self.start_route(&module, &class, &action, &params, &mut data, false);
@@ -936,7 +906,7 @@ impl Action {
   }
 
   // Start CRM system with fixed struct
-  fn start_route(&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+  fn start_route(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     // Get Access
     let access = self.get_access(module, class, action);
 
@@ -955,75 +925,154 @@ impl Action {
 
   // Load internal controller
   pub fn load(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>) -> Answer {
-    self.start_route(&module.to_owned(), &class.to_owned(), &action.to_owned(), &params.to_owned(), data, true)
+    self.start_route(module, class, action, params, data, true)
+  }
+
+  // Get a translation by key
+  pub fn lang(&self, key: &str) -> String {
+    let (module, class) = self.current.last().unwrap();
+    match self.i18n.get(&self.lang_id) {
+      Some(value) => match value.get(module) {
+        Some(val) => match val.get(class) {
+          Some(v) => match v.get(key) {
+            Some(text) => Action::htmlencode(text),
+            None => key.to_owned(),
+          },
+          None => key.to_owned(),
+        },
+        None => key.to_owned(),
+      },
+      None => key.to_owned(),
+    }
+  }
+
+  // Replace special html text
+  pub fn htmlencode(text: &str) -> String {
+    let mut text = text.replace("&", "&amp;");
+    text = text.replace("\"", "&quot;");
+    text = text.replace("'", "&apos;");
+    text = text.replace("<", "&lt;");
+    text = text.replace(">", "&gt;");
+    text
+  }
+  
+  // Rendering template
+  pub fn out(&mut self, view: &str, data: &HashMap<String, Data>) -> Answer {
+    let (module, class) = self.current.pop().unwrap();
+    if let Some(t) = self.tpls.get(&module) {
+      if let Some(t) = t.get(&class) {
+        if let Some(view) = t.get(view) {
+          let mut view = view.to_owned();
+          for (key, data) in data {
+            match data {
+              Data::None => {
+                let key = format!("<?={}?>", key);
+                view = view.replace(&key, "");
+              },
+              Data::String(val) => {
+                let key = format!("<?={}?>", key);
+                view = view.replace(&key, val);
+              },
+              Data::VecLang((lang_id, val)) => {
+                let key_start = format!("<?[{}?>", key);
+                let key_finish = format!("<?{}]?>", key);
+                if let Some(start) = view.find(&key_start) {
+                  if let Some(finish) = view.find(&key_finish) {
+                    if start<finish {
+                      let tpl = view[start+key_start.len()..finish].to_owned();
+                      let mut vec = Vec::with_capacity(val.len());
+                      for lang in val {
+                        let k = format!("<?={}.lang_id?>", key);
+                        let mut v = tpl.replace(&k, &lang.lang_id.to_string());
+                        let k = format!("<?={}.lang?>", key);
+                        v = v.replace(&k, &lang.lang);
+                        let k = format!("<?={}.code?>", key);
+                        v = v.replace(&k, &lang.code);
+                        let k = format!("<?={}.name?>", key);
+                        v = v.replace(&k, &Action::htmlencode(&lang.name));
+                        let k = format!("<?={}.selected?>", key);
+                        if *lang_id == lang.lang_id {
+                          v = v.replace(&k, "selected");
+                        } else {
+                          v = v.replace(&k, "");
+                        }
+                        vec.push(v);
+                      }
+                      view = format!("{}{}{}", &view[0..start], vec.join("") , &view[finish+key_finish.len()..])
+                    }
+                  };
+                };
+              },
+              _ => {},
+            };
+          }
+          return Answer::String(view);
+        }
+      }
+    }
+    Answer::None
   }
 
   // Run controller
-  fn run (&mut self, module: &String, class: &String, action: &String, params: &String, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
-    match module as &str {
-      "admin" => match class as &str {
+  fn run(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
+    self.current.push((module.to_owned(), class.to_owned()));
+    match module {
+      "admin" => match class {
         "index" => {
-          let mut app = super::admin::index::App::new(self, module, class);
-          match action as &str {
-            "index" => return app.index(params, data, internal),
-            "main" => return app.main(params, data, internal),
+          match action {
+            "index" => return super::admin::index::App::index(self, params, data, internal),
+            "main" => return super::admin::index::App::main(self, params, data, internal),
             _ => {}
           };
         },
         _ => {},
       },
-      "index" => match class as &str {
+      "index" => match class {
         "cart" => {
-          let mut app = super::index::cart::App::new(self, module, class);
-          match action as &str {
-            "index" => return app.index(params, data, internal),
+          match action {
+            "index" => return super::index::cart::App::index(self, params, data, internal),
             _ => {}
           };
         },
         "index" => {
-          let mut app = super::index::index::App::new(self, module, class);
-          match action as &str {
-            "index" => return app.index(params, data, internal),
-            "head" => return app.head(params, data, internal),
-            "foot" => return app.foot(params, data, internal),
-            "not_found" => return app.not_found(params, data, internal),
+          match action {
+            "index" => return super::index::index::App::index(self, params, data, internal),
+            "head" => return super::index::index::App::head(self, params, data, internal),
+            "foot" => return super::index::index::App::foot(self, params, data, internal),
+            "not_found" => return super::index::index::App::not_found(self, params, data, internal),
             _ => {}
           };
         },
         "menu" => {
-          let mut app = super::index::menu::App::new(self, module, class);
-          match action as &str {
-            "header" => return app.header(params, data, internal),
-            "products" => return app.products(params, data, internal),
-            "list" => return app.list(params, data, internal),
-            "logo" => return app.logo(params, data, internal),
-            "upper" => return app.upper(params, data, internal),
+          match action {
+            "header" => return super::index::menu::App::header(self, params, data, internal),
+            "products" => return super::index::menu::App::products(self, params, data, internal),
+            "list" => return super::index::menu::App::list(self, params, data, internal),
+            "logo" => return super::index::menu::App::logo(self, params, data, internal),
+            "upper" => return super::index::menu::App::upper(self, params, data, internal),
             _ => {}
           };
         },
         "search" => {
-          let mut app = super::index::search::App::new(self, module, class);
-          match action as &str {
-            "main" => return app.main(params, data, internal),
-            "small" => return app.small(params, data, internal),
+          match action {
+            "main" => return super::index::search::App::main(self, params, data, internal),
+            "small" => return super::index::search::App::small(self, params, data, internal),
             _ => {}
           };
         },
         _ => {},
       },
-      "user" => match class as &str {
+      "user" => match class {
         "admin" => {
-          let mut app = super::user::admin::App::new(self, module, class);
-          match action as &str {
-            "index" => return app.index(params, data, internal),
+          match action {
+            "index" => return super::user::admin::App::index(self, params, data, internal),
             _ => {}
           };
         },
         "index" => {
-          let mut app = super::user::index::App::new(self, module, class);
-          match action as &str {
-            "menu" => return app.menu(params, data, internal),
-            "up" => return app.up(params, data, internal),
+          match action {
+            "menu" => return super::user::index::App::menu(self, params, data, internal),
+            "up" => return super::user::index::App::up(self, params, data, internal),
             _ => {}
           };
         },

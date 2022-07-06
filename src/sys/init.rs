@@ -31,8 +31,8 @@ pub enum AppAction {
 // Initial startup structure
 pub struct Init {
   pub id: u32,                        // Operating system process ID
-  pub dir: String,                    // Current startup directory
   pub exe: String,                    // Current program path
+  pub dir: String,                    // Current startup directory
   pub sys: Sys,                       // Process management
   pub version: String,                // Version
   pub db: DB,                         // Database connection
@@ -53,7 +53,6 @@ impl Init {
       Err(e) => return Err(LogApp::get_error(5, &e.to_string())),
     };
     let dir = (&exe[..exe.len() - 1 - Path::new(&exe).file_name().unwrap().len()]).to_owned();
-
     let sys = Sys {
       max_connection: 25,
       socket: vec![SocketAddr::from_str("127.0.0.1:9001").unwrap()],
@@ -70,8 +69,8 @@ impl Init {
     
     Ok(Init { 
       id: process::id(),
-      dir,
       exe,
+      dir,
       sys,
       version: env!("CARGO_PKG_VERSION").to_owned(),
       db,

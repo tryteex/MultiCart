@@ -5,10 +5,9 @@ use ini_core::{Parser, Item};
 // Translation
 pub struct I18n {
   pub load: bool,                                                                     // Translation is loaded
-  pub langs: HashMap<u8, LangItem>,                                                   // List of enable langs
-  pub sort: Vec<LangItem>,                                                            // Sorted list of langs
-  pub langs_code: HashMap<String, u8>,                                                // Lang code to lang ID
-  pub data: HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>,   // Translations
+  pub langs: Vec<LangItem>,                                                           // Sorted list of langs
+  pub langs_code: HashMap<String, u8>,                                                // Lang code to lang ID: "ua"->1, "en"->3
+  pub data: HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>,   // Translations: lang_id->module->class->key->value
 }
 
 // One language item
@@ -25,29 +24,23 @@ impl I18n {
   pub fn new() -> I18n {
     I18n {
       load: false,
-      langs: HashMap::with_capacity(8),
-      sort: Vec::with_capacity(8),
+      langs: Vec::with_capacity(8),
       langs_code: HashMap::with_capacity(8),
       data: HashMap::with_capacity(8),
     }
   }
 
   // Clone language settings
-  pub fn clone_lang(&self) -> (HashMap<u8, LangItem>, Vec<LangItem>) {
-    let mut langs: HashMap<u8, LangItem> = HashMap::with_capacity(self.langs.len());
-    let mut sort: Vec<LangItem> = Vec::with_capacity(self.sort.len());
-    for (lang_id, item) in &self.langs {
-      langs.insert(*lang_id, item.clone());
+  pub fn clone_lang(&self) -> Vec<LangItem> {
+    let mut langs: Vec<LangItem> = Vec::with_capacity(self.langs.len());
+    for item in &self.langs {
+      langs.push(item.clone());
     }
-    for item in &self.sort {
-      sort.push(item.clone());
-    }
-    (langs, sort)
+    langs
   }
 
   // Load translations
   pub fn load_lang(&mut self, dir: &String) -> Result<(), Error> {
-    let dir = format!("{}app/", dir);
     // Read dir with application data
     match read_dir(dir) {
       Ok(d1) => {

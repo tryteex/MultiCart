@@ -16,10 +16,9 @@ impl Sys {
     sql: Rc<RefCell<Client>>, 
     param: &HashMap<String, String>, 
     stdin: &Option<Vec<u8>>, 
-    i18n: Rc<RefCell<HashMap<u8, 
-    HashMap<String, HashMap<String, Rc<RefCell<HashMap<String, String>>>>>>>>, 
-    langs: Rc<RefCell<HashMap<u8, LangItem>>>, 
-    sort: Rc<RefCell<Vec<LangItem>>>,
+    i18n: &HashMap<u8, HashMap<String, HashMap<String, HashMap<String, String>>>>,
+    langs: &Vec<LangItem>,
+    tpls: &HashMap<String, HashMap<String, HashMap<String, String>>>,
   ) -> Vec<u8> {
     let storage;
     let salt;
@@ -38,7 +37,7 @@ impl Sys {
       }
     }
     // Run CRM
-    let mut action = Action::new(sql, salt, storage, i18n, param, stdin, dir, langs, sort);
+    let mut action = Action::new(sql, salt, storage, param, stdin, dir, i18n, langs, tpls);
     let text = match action.start() {
       // Answer::Raw(answer) => answer,
       Answer::String(answer) => answer.into_bytes(),

@@ -108,7 +108,12 @@ impl LogApp {
       // SQL error
       350 => s.push_str(": Error connect to sql server. Error text: "), 
       351 => s.push_str(": Error set time_zone. Error text: "), 
-      352 => s.push_str(": Error get langs. Error text: "), 
+
+      // Lang
+      370 => s.push_str(": Error get langs. Error text: "), 
+
+      // Template
+      380 => s.push_str(": Error get templates. Error text: "), 
 
       // Start fastCGI server
       400 => s.push_str(": Permission denied to open socket"),
