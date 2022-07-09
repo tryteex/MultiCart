@@ -739,7 +739,7 @@ impl<'a> Action<'a> {
       SELECT COALESCE(MAX(a.access::int), 0) AS access
       FROM 
         access a
-        INNER JOIN user_role u ON u.role_id=a.role_id
+        INNER JOIN \"user\" u ON u.role_id=a.role_id
         INNER JOIN controller c ON a.controller_id=c.controller_id
       WHERE a.access AND u.user_id={} AND ({})
     ", self.user_id, w.join(" OR ").to_owned());
@@ -819,25 +819,26 @@ impl<'a> Action<'a> {
         self.set_redirect(&r[1..], permanently);
         return None;
       }
+    } else {
+      let sql = format!("
+        SELECT redirect, permanently
+        FROM redirect
+        WHERE url={}
+      ", url);
+      let res = self.db_query(&sql);
+      if res.len() == 1 {
+        let row = &res[0];
+        let redirect: String = row.get(0);
+        let code: bool = row.get(1);
+        let c = if code { "1" } else { "0" };
+        let permanently = if code { true } else { false };
+        let value = format!("{}{}", c, redirect);
+        self.set_redirect(&redirect, permanently);
+        self.cache_set(key, Data::String(value));
+        return None;
+      }
+      self.cache_set(key, Data::None);
     }
-    let sql = format!("
-      SELECT redirect, permanently
-      FROM redirect
-      WHERE url={}
-    ", url);
-    let res = self.db_query(&sql);
-    if res.len() == 1 {
-      let row = &res[0];
-      let redirect: String = row.get(0);
-      let code: bool = row.get(1);
-      let c = if code { "1" } else { "0" };
-      let permanently = if code { true } else { false };
-      let value = format!("{}{}", c, redirect);
-      self.set_redirect(&redirect, permanently);
-      self.cache_set(key, Data::String(value));
-      return None;
-    }
-    self.cache_set(key, Data::None);
 
     // Get route
     let key = format!("route:{}", &self.url);
@@ -851,27 +852,28 @@ impl<'a> Action<'a> {
         let lang_id = res[4].parse::<u8>().unwrap();
         return Some((module, class, action, params, Some(lang_id)));
       }
-    } 
-    let sql = format!("
-      SELECT c.module, c.class, c.action, r.params, r.lang_id
-      FROM route r INNER JOIN controller c ON r.controller_id=c.controller_id
-      WHERE 
-        r.url={} AND LENGTH(c.module)>0 AND LENGTH(c.class)>0 AND LENGTH(c.action)>0
-    ", url);
-    let res = self.db_query(&sql);
-    if res.len() == 1 {
-      let row = &res[0];
-      let module: String = row.get(0);
-      let class: String = row.get(1);
-      let action: String = row.get(2);
-      let params: String = row.get(3);
-      let lang_id: i64 = row.get(4);
-      let lang_id = u8(lang_id).unwrap();
-      let value = format!("{}:{}:{}:{}:{}", module, class, action, params, lang_id.to_string());
-      self.cache_set(key, Data::String(value));
-      return Some((module, class, action, params, Some(lang_id)));
+    } else {
+      let sql = format!("
+        SELECT c.module, c.class, c.action, r.params, r.lang_id
+        FROM route r INNER JOIN controller c ON r.controller_id=c.controller_id
+        WHERE 
+          r.url={} AND LENGTH(c.module)>0 AND LENGTH(c.class)>0 AND LENGTH(c.action)>0
+      ", url);
+      let res = self.db_query(&sql);
+      if res.len() == 1 {
+        let row = &res[0];
+        let module: String = row.get(0);
+        let class: String = row.get(1);
+        let action: String = row.get(2);
+        let params: String = row.get(3);
+        let lang_id: i64 = row.get(4);
+        let lang_id = u8(lang_id).unwrap();
+        let value = format!("{}:{}:{}:{}:{}", module, class, action, params, lang_id.to_string());
+        self.cache_set(key, Data::String(value));
+        return Some((module, class, action, params, Some(lang_id)));
+      }
+      self.cache_set(key, Data::None);
     }
-    self.cache_set(key, Data::None);
 
     // Encode route
     let mut module = "index".to_owned();
@@ -958,9 +960,9 @@ impl<'a> Action<'a> {
   
   // Rendering template
   pub fn out(&mut self, view: &str, data: &HashMap<String, Data>) -> Answer {
-    let (module, class) = self.current.pop().unwrap();
-    if let Some(t) = self.tpls.get(&module) {
-      if let Some(t) = t.get(&class) {
+    let (module, class) = self.current.last().unwrap();
+    if let Some(t) = self.tpls.get(module) {
+      if let Some(t) = t.get(class) {
         if let Some(view) = t.get(view) {
           let mut view = view.to_owned();
           for (key, data) in data {
@@ -1016,71 +1018,58 @@ impl<'a> Action<'a> {
   // Run controller
   fn run(&mut self, module: &str, class: &str, action: &str, params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     self.current.push((module.to_owned(), class.to_owned()));
-    match module {
+    let answer = match module {
       "admin" => match class {
-        "index" => {
-          match action {
-            "index" => return super::admin::index::App::index(self, params, data, internal),
-            "main" => return super::admin::index::App::main(self, params, data, internal),
-            _ => {}
-          };
+        "index" => match action {
+          "index" => super::admin::index::App::index(self, params, data, internal),
+          "main" => super::admin::index::App::main(self, params, data, internal),
+          _ => Answer::None
         },
-        _ => {},
+        _ => Answer::None,
       },
       "index" => match class {
-        "cart" => {
-          match action {
-            "index" => return super::index::cart::App::index(self, params, data, internal),
-            _ => {}
-          };
+        "cart" => match action {
+          "index" => super::index::cart::App::index(self, params, data, internal),
+          _ => Answer::None
         },
-        "index" => {
-          match action {
-            "index" => return super::index::index::App::index(self, params, data, internal),
-            "head" => return super::index::index::App::head(self, params, data, internal),
-            "foot" => return super::index::index::App::foot(self, params, data, internal),
-            "not_found" => return super::index::index::App::not_found(self, params, data, internal),
-            _ => {}
-          };
+        "index" => match action {
+          "index" => super::index::index::App::index(self, params, data, internal),
+          "head" => super::index::index::App::head(self, params, data, internal),
+          "foot" => super::index::index::App::foot(self, params, data, internal),
+          "not_found" => super::index::index::App::not_found(self, params, data, internal),
+          _ => Answer::None
         },
-        "menu" => {
-          match action {
-            "header" => return super::index::menu::App::header(self, params, data, internal),
-            "products" => return super::index::menu::App::products(self, params, data, internal),
-            "list" => return super::index::menu::App::list(self, params, data, internal),
-            "logo" => return super::index::menu::App::logo(self, params, data, internal),
-            "upper" => return super::index::menu::App::upper(self, params, data, internal),
-            _ => {}
-          };
+        "menu" => match action {
+          "header" => super::index::menu::App::header(self, params, data, internal),
+          "products" => super::index::menu::App::products(self, params, data, internal),
+          "list" => super::index::menu::App::list(self, params, data, internal),
+          "logo" => super::index::menu::App::logo(self, params, data, internal),
+          "upper" => super::index::menu::App::upper(self, params, data, internal),
+          _ => Answer::None
         },
-        "search" => {
-          match action {
-            "main" => return super::index::search::App::main(self, params, data, internal),
-            "small" => return super::index::search::App::small(self, params, data, internal),
-            _ => {}
-          };
+        "search" => match action {
+          "main" => super::index::search::App::main(self, params, data, internal),
+          "small" => super::index::search::App::small(self, params, data, internal),
+          _ => Answer::None
         },
-        _ => {},
+        _ => Answer::None,
       },
       "user" => match class {
-        "admin" => {
-          match action {
-            "index" => return super::user::admin::App::index(self, params, data, internal),
-            _ => {}
-          };
+        "admin" => match action {
+          "index" => super::user::admin::App::index(self, params, data, internal),
+          _ => Answer::None
         },
-        "index" => {
-          match action {
-            "menu" => return super::user::index::App::menu(self, params, data, internal),
-            "up" => return super::user::index::App::up(self, params, data, internal),
-            _ => {}
-          };
+        "index" => match action {
+          "menu" => super::user::index::App::menu(self, params, data, internal),
+          "up" => super::user::index::App::up(self, params, data, internal),
+          _ => Answer::None
         },
-        _ => {},
+        _ => Answer::None,
       },
-      _ => {},
+      _ => Answer::None,
     };
-    Answer::None
+    self.current.pop();
+    answer
   }
 
 }

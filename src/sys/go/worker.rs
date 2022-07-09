@@ -170,11 +170,15 @@ impl Worker {
                 &langs,
                 &tpls,
               );
+              let go;
               {
                 let mut w = Mutex::lock(&worker_thread).unwrap();
                 w.start = false;
                 w.status = Status::None;
-                let mut g = Mutex::lock(&w.go).unwrap();
+                go = Arc::clone(&w.go);
+              }
+              {
+                let mut g = Mutex::lock(&go).unwrap();
                 g.use_connection -= 1;
               }
             },
@@ -371,30 +375,8 @@ impl Worker {
               // Write ansewer to the WEB server
               if let Some(record) = begin_record {
                 FastCGI::write_response(&record.header, answer, &mut stream).unwrap_or(());
-                // Check "KeepConnect" status
-                if let ContentData::BeginRequest(data) = &record.data {
-                  if data.flags == 0 {
-                    // "KeepConnect" was not set
-                    break;
-                  }
-                  // "KeepConnect" was set
-                } else {
-                  // Something starange
-                  break;
-                }
-              } else {
-                // Something starange
-                break;
               }
-              // Clear Worker
-              *begin_record = None;
-              param_record.clear();
-              *stdin_record = None;
-              {
-                let mut w = Mutex::lock(&worker).unwrap();
-                w.status = Status::None;
-              }
-              need_read = true;
+              break;
             },
             _ => break,
           }

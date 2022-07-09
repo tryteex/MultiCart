@@ -7,6 +7,7 @@ mod sys {
     pub mod sys;
     pub mod storage;
     pub mod i18n;
+    pub mod queue;
     pub mod template;
   }
   pub mod log;

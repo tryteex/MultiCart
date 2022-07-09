@@ -24,17 +24,21 @@ impl Sys {
     let salt;
     let dir;
     // Connect the memory cache system
+    let go;
     {
       let w = Mutex::lock(&worker).unwrap();
-      {
-        let g = Mutex::lock(&w.go).unwrap();
-        storage = Arc::clone(&g.storage);
-        {
-          let i = RwLock::read(&g.init).unwrap();
-          salt = i.salt.clone();
-          dir = i.dir.clone();
-        }
-      }
+      go = Arc::clone(&w.go);
+    }
+    let init;
+    {
+      let g = Mutex::lock(&go).unwrap();
+      storage = Arc::clone(&g.storage);
+      init = Arc::clone(&g.init);
+    }
+    {
+      let i = RwLock::read(&init).unwrap();
+      salt = i.salt.clone();
+      dir = i.dir.clone();
     }
     // Run CRM
     let mut action = Action::new(sql, salt, storage, param, stdin, dir, i18n, langs, tpls);

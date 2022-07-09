@@ -46,10 +46,6 @@ impl LogApp {
       // Log error
       1 => s.push_str(": Can't write log to file. System message: "),
       2 => s.push_str(": Can't open log file. System message: "),
-      3 => s.push_str(": Can't get current dir"),
-      4 => s.push_str(": Can't get current dir. System message: "),
-      5 => s.push_str(": Can't get current exe. System message: "),
-      6 => s.push_str(": Can't get current exe"),
       
       // Config file error
       100 => s.push_str(": Unknown error when opening config file: "),
@@ -124,6 +120,7 @@ impl LogApp {
       // Server go
       500 => s.push_str(": The network connection is abruptly disconnected. System error: "),
       501 => s.push_str(": Mix up connections."),
+      502 => s.push_str(": Queue is wrong."),
 
       // Unknown error
       _ => s.push_str(": Unknown error: "),

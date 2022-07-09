@@ -3,14 +3,15 @@ use std::{sync::{Arc, Mutex, RwLock}};
 
 use crate::sys::{init::Init, log::LogApp};
 
-use super::{worker::{Worker, Message}, storage::Storage, i18n::I18n, template::Template};
+use super::{worker::{Worker, Message}, storage::Storage, i18n::I18n, template::Template, queue::Queue};
 
 pub const MS1: std::time::Duration = Duration::from_millis(1);
 // Main struct for program
 pub struct Go {
   pub init: Arc<RwLock<Init>>,                                      // Init system
   pub log: Arc<RwLock<LogApp>>,                                     // Log system
-  pub main: Option<JoinHandle<()>>,                                 // Main IRC thread
+  pub tcp: Option<JoinHandle<()>>,                                  // TCP reciever
+  pub main: Option<JoinHandle<()>>,                                 // Main thread
   stop: bool,                                                       // Send the "stop" signal
   max_connection: usize,                                            // Max threads or max connections (it is the same) from the WEB server
   pub use_connection: usize,                                        // How many threads are already running
@@ -18,6 +19,7 @@ pub struct Go {
   pub storage: Arc<Mutex<Storage>>,                                 // Memory cache system
   pub i18n: Arc<Mutex<I18n>>,                                       // Translations
   pub tpl: Arc<Mutex<Template>>,                                    // Templates system
+  queue: Arc<Mutex<Queue>>,                                         // Input connections
 }
 
 impl Go {
@@ -28,10 +30,13 @@ impl Go {
 
     let max_connection = usize::from(init_read.sys.max_connection);
 
+    let q = Queue::new(65536);
+
     // Create main struct
     let go = Go {
       init: Arc::clone(&init),
       log: Arc::clone(&log),
+      tcp: None,
       main: None,
       stop: false,
       max_connection,
@@ -40,6 +45,7 @@ impl Go {
       storage: Arc::new(Mutex::new(Storage::new())),
       i18n: Arc::new(Mutex::new(I18n::new())),
       tpl: Arc::new(Mutex::new(Template::new())),
+      queue: Arc::new(Mutex::new(q)),
     };
 
     let go = Arc::new(Mutex::new(go));
@@ -57,6 +63,8 @@ impl Go {
       }
     }
 
+    // Run main thread
+    Go::main(Arc::clone(&go));
     // Start threads to listenning to the connections
     Go::open(Arc::clone(&go));
 
@@ -154,11 +162,13 @@ impl Go {
 
   // Stop fastCGI and CRM server
   fn stop(go: Arc<Mutex<Go>>) {
+    let tcp_read;
     let main_read;
     // Send "stop" to all threads
     {
       let mut g = Mutex::lock(&go).unwrap();
       g.stop = true;
+      tcp_read = g.tcp.take();
       main_read = g.main.take();
       for i in 0..g.max_connection {
         let (item, sender) = g.connections.get(i).unwrap();
@@ -177,6 +187,9 @@ impl Go {
         Worker::join(Arc::clone(item));
       }
     }
+    if let Some(tcp) = tcp_read {
+      tcp.join().unwrap();
+    }
     if let Some(main) = main_read {
       main.join().unwrap();
     }
@@ -193,11 +206,11 @@ impl Go {
     if let Err(_) = stream.write_all(&answer.into_bytes()) { }
   }
 
-  // Main loop to strating fastCGI and CRM server
+  // Main loop to recieve tcp connection from WEB server
   pub fn open(go: Arc<Mutex<Go>>) {
     let move_go = Arc::clone(&go);
     // Start thread for listening connections from WEB server
-    let main = thread::spawn(move || {
+    let tcp = thread::spawn(move || {
       let bind;
       // Bind the connection
       {
@@ -233,7 +246,6 @@ impl Go {
   
       // Set Non blocking mode 
       if let Ok(()) = bind.set_nonblocking(true) {
-        let mut index: Option<usize>;
         // Main part on loop. Wait incomming request from WEB server
         for stream in bind.incoming() {
           // Check the stop
@@ -244,56 +256,26 @@ impl Go {
             }
           }
           match stream {
-            Ok(stream) => loop {
-              // If KeepConnect - wait next client from WEB server
-              index = None;
-              {
-                let use_connection;
-                let max_connection;
+            Ok(stream) => {
+              let mut str = stream;
+              let mut queue;
+              loop {
                 {
-                  let g = Mutex::lock(&move_go).unwrap();
+                  let g = Mutex::lock(&move_go).unwrap(); 
                   if g.stop == true {
                     break;
                   }
-                  use_connection = g.use_connection;
-                  max_connection = g.max_connection;
+                  queue = Arc::clone(&g.queue);
                 }
-                // Wait free thread
-                if use_connection < max_connection {
-                  {
-                    let mut g = Mutex::lock(&move_go).unwrap();
-                    g.use_connection += 1;  
-                  }
-                  // Find thread
-                  for i in 0..max_connection {
-                    let g = Mutex::lock(&move_go).unwrap();
-                    let (item, _) = g.connections.get(i).unwrap();
-                    {
-                      let mut w = Mutex::lock(item).unwrap();
-                      if w.start == false {
-                        w.start = true;
-                        w.count = 0;
-                        index = Some(i);
-                        break;
-                      }
-                    }
-                  }
-                  if let None = index {
-                    let g = Mutex::lock(&move_go).unwrap();
-                    let log_read = RwLock::read(&g.log).unwrap();
-                    log_read.exit_err(&LogApp::get_error(501, ""));
+                {
+                  let mut q = Mutex::lock(&queue).unwrap(); 
+                  match q.push(str) {
+                    Some(s) => str = s,
+                    None => break,
                   }
                 }
+                thread::sleep(MS1);
               }
-              // If we found the free thread 
-              // We send signal for this sleeping thread
-              if let Some(ind) = index {
-                let g = Mutex::lock(&move_go).unwrap();
-                let (_, sender) = g.connections.get(ind).unwrap();
-                sender.send(Message::Job(stream)).unwrap();
-                break;
-              }
-              thread::sleep(MS1);
             },
             Err(e) => match e.kind() {
               ErrorKind::WouldBlock => {
@@ -309,6 +291,97 @@ impl Go {
             },
           };
         }
+      }
+    });
+    let mut g = Mutex::lock(&go).unwrap();
+    g.tcp = Some(tcp);
+  }
+
+  // Main loop to strating fastCGI and CRM server
+  pub fn main(go: Arc<Mutex<Go>>) {
+    let move_go = Arc::clone(&go);
+    // Start thread for listening connections from WEB server
+    let mut wait = false;
+    let main = thread::spawn(move || loop {
+      if wait {
+        thread::sleep(MS1);
+      }
+      let tcp;
+      let queue;
+      {
+        let g = Mutex::lock(&move_go).unwrap();
+        if g.stop == true {
+          break;
+        }
+        queue = Arc::clone(&g.queue);
+      }
+      wait = false;
+      {
+        let mut q = Mutex::lock(&queue).unwrap();
+        if q.empty() {
+          wait = true;
+          continue;
+        } else {
+          if let Some(t) = q.take() {
+            tcp = t;
+          } else {
+            let g = Mutex::lock(&move_go).unwrap();
+            let log_read = RwLock::read(&g.log).unwrap();
+            log_read.exit_err(&LogApp::get_error(502, ""));  
+          }
+        }
+      }
+      let mut index: Option<usize>;
+      let mut use_connection;
+      let max_connection;
+      {
+        let g = Mutex::lock(&move_go).unwrap();
+        max_connection = g.max_connection;
+      }
+      loop {
+        index = None;
+        {
+          let g = Mutex::lock(&move_go).unwrap();
+          if g.stop == true {
+            break;
+          }
+          use_connection = g.use_connection;
+        }
+        // Wait free thread
+        if use_connection < max_connection {
+          {
+            let mut g = Mutex::lock(&move_go).unwrap();
+            g.use_connection += 1;  
+          }
+          // Find thread
+          for i in 0..max_connection {
+            let g = Mutex::lock(&move_go).unwrap();
+            let (item, _) = g.connections.get(i).unwrap();
+            {
+              let mut w = Mutex::lock(item).unwrap();
+              if w.start == false {
+                w.start = true;
+                w.count = 0;
+                index = Some(i);
+                break;
+              }
+            }
+          }
+          if let None = index {
+            let g = Mutex::lock(&move_go).unwrap();
+            let log_read = RwLock::read(&g.log).unwrap();
+            log_read.exit_err(&LogApp::get_error(501, ""));
+          }
+        }
+        // If we found the free thread 
+        // We send signal for this sleeping thread
+        if let Some(ind) = index {
+          let g = Mutex::lock(&move_go).unwrap();
+          let (_, sender) = g.connections.get(ind).unwrap();
+          sender.send(Message::Job(tcp)).unwrap();
+          break;
+        }
+        thread::sleep(MS1);
       }
     });
     let mut g = Mutex::lock(&go).unwrap();

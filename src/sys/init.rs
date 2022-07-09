@@ -1,4 +1,4 @@
-use std::{process, net::SocketAddr, env::{self, Args}, str::FromStr, fs::read_to_string, path::Path};
+use std::{process, net::SocketAddr, env::{self, Args}, str::FromStr, fs::read_to_string};
 
 use ini_core::{Parser, Item};
 
@@ -45,14 +45,11 @@ impl Init {
 
   // Constructor
   pub fn new() -> Result<Init, String> {
-    let exe = match env::current_exe() {
-      Ok(exe) => match exe.to_str() {
-          Some(exe) => exe.to_owned(),
-          None =>return Err(LogApp::get_error(6, "")),
-      },
-      Err(e) => return Err(LogApp::get_error(5, &e.to_string())),
-    };
-    let dir = (&exe[..exe.len() - 1 - Path::new(&exe).file_name().unwrap().len()]).to_owned();
+    let dir = env::current_dir().unwrap().to_str().unwrap().to_owned();
+    let exe = env::current_exe().unwrap().to_str().unwrap().to_owned();
+    let exe = exe.split(&dir).last().unwrap();
+    let exe = format!("{}{}", dir, exe);
+
     let sys = Sys {
       max_connection: 25,
       socket: vec![SocketAddr::from_str("127.0.0.1:9001").unwrap()],
