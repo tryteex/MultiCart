@@ -40,7 +40,7 @@ impl I18n {
   }
 
   // Load translations
-  pub fn load_lang(&mut self, dir: &String) -> Result<(), Error> {
+  pub fn load_lang(&mut self, dir: &str) -> Result<(), Error> {
     // Read dir with application data
     match read_dir(dir) {
       Ok(d1) => {
