@@ -117,6 +117,7 @@ impl Worker {
       }
     }
     let go_panic = Arc::clone(&go);
+    let go_thread = Arc::clone(&go);
     // Init Worker
     let worker = Worker {
       id,
@@ -136,13 +137,20 @@ impl Worker {
       let langs: Vec<LangItem>;
       let tpls: HashMap<String, HashMap<String, HashMap<String, String>>>;
       // Init variable for translations
+      let i118n_th;
+      let tpl_th;
       {
-        let w = Mutex::lock(&worker_thread).unwrap();
-        let g = Mutex::lock(&w.go).unwrap();
-        let lang_lock = Mutex::lock(&g.i18n).unwrap();
+        let g = Mutex::lock(&go_thread).unwrap();
+        i118n_th = Arc::clone(&g.i18n);
+        tpl_th = Arc::clone(&g.tpl);
+      }
+      {
+        let lang_lock = Mutex::lock(&i118n_th).unwrap();
         langs = lang_lock.clone_lang();
         i18n = Worker::prepare_lang(lang_lock);
-        let tpl_lock = Mutex::lock(&g.tpl).unwrap();
+      }
+      {
+        let tpl_lock = Mutex::lock(&tpl_th).unwrap();
         tpls = Worker::prepare_tpl(tpl_lock);
       }
 
