@@ -63,7 +63,6 @@ pub struct Action<'a> {
   db_sql: Rc<RefCell<Client>>,              // Postgresql connection
   pub db_counts: u64,                       // Count selected data
   pub db_err: bool,                         // Error of sql query
-  pub db_query: String,                     // Last sql text
   pub db_error: String,                     // Error text
 
   storage: Arc<Mutex<Storage>>,             // Global cache
@@ -82,10 +81,6 @@ pub struct Action<'a> {
   pub post: HashMap<String, String>,        // POST data
   pub file: HashMap<String, Vec<WebFile>>,  // FILE data
   pub cookie: HashMap<String, String>,      // Cookies
-  pub module: String,                       // Startup module
-  pub class: String,                        // Startup class
-  pub action: String,                       // Startup class
-  pub params: String,                       // Startup class
 
   pub set_cookie: Cookie,                   // Cookie
   location: Option<Location>,               // Redirect (HTTP Location)
@@ -130,7 +125,7 @@ impl<'a> Action<'a> {
     let mut cookie = HashMap::with_capacity(16);
 
     let key = "HTTP_X_REQUESTED_WITH";
-    let ajax = if param.contains_key(key) && param.get(key).unwrap().to_lowercase().eq(&"xmlhttprequest".to_owned()) { true } else { false };
+    let ajax = if param.contains_key(key) && param.get(key).unwrap().to_lowercase().eq("xmlhttprequest") { true } else { false };
     let key = "HTTP_HOST";
     let host = if param.contains_key(key) { param.get(key).unwrap().to_owned() } else { "".to_owned() };
     let key = "REQUEST_SCHEME";
@@ -276,8 +271,7 @@ impl<'a> Action<'a> {
       db_sql: sql,
       db_counts: 0,
       db_err: false,
-      db_query: String::with_capacity(65536),
-      db_error: String::with_capacity(65536),
+      db_error: "".to_owned(),
 
       // cache
       storage,
@@ -297,10 +291,6 @@ impl<'a> Action<'a> {
       post,
       cookie,
       file,
-      module: "".to_owned(),
-      class: "".to_owned(),
-      action: "".to_owned(),
-      params: "".to_owned(),
 
       // response
       http_code: None,
@@ -336,7 +326,7 @@ impl<'a> Action<'a> {
 
   // DB block
   // Execute query to database
-  pub fn db_query(&mut self, sql: &String)->Vec<Row> {
+  pub fn db_query(&mut self, sql: &str)->Vec<Row> {
     let mut db = self.db_sql.borrow_mut();
     
     match db.query(sql, &[]) {
@@ -344,14 +334,12 @@ impl<'a> Action<'a> {
         self.db_err = false;
         self.db_counts = u64(res.len());
         self.db_error = "".to_owned();
-        self.db_query = sql.to_owned();
         return res;
       },
       Err(e) => {
         self.db_err = true;
         self.db_counts = 0;
         self.db_error = e.to_string();
-        self.db_query = sql.to_owned();
         return Vec::new();
       },
     };
