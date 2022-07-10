@@ -95,6 +95,7 @@ pub struct Action<'a> {
   pub lang_code: String,                    // Current language code
 
   pub user_id: i64,                         // user_id from database
+  pub role_id: i64,                         // role_id from database
   pub session_id: i64,                      // session_id from database
   pub session: String,                      // cookie key
   session_data: HashMap<String, Data>,      // User data
@@ -311,6 +312,7 @@ impl<'a> Action<'a> {
 
       // seccion
       user_id: 0,
+      role_id: 0,
       session_id: 0,
       session,
       session_data,
@@ -587,10 +589,13 @@ impl<'a> Action<'a> {
             LEFT JOIN session s ON s.session=n.session
           WHERE s.session_id IS NULL
           RETURNING session_id, data, user_id
-        )
-      SELECT session_id, data::text, user_id FROM ins_q
-      UNION 
-      SELECT session_id, data::text, user_id FROM session WHERE session={}
+        ),
+      res AS (
+        SELECT session_id, data::text, user_id FROM ins_q
+        UNION 
+        SELECT session_id, data::text, user_id FROM session WHERE session={}
+      )
+      SELECT r.session_id, r.data, r.user_id, u.role_id FROM res r INNER JOIN \"user\" u ON u.user_id=r.user_id
     ", ses_esc, self.db_escape(&self.ip), self.db_escape(&self.agent), ses_esc);
     let res = self.db_query(&sql);
     if res.len() != 1 {
@@ -600,9 +605,11 @@ impl<'a> Action<'a> {
     let session_id: i64 = row.get(0);
     let user_id: i64 = row.get(2);
     let data: String = row.get(1);
+    let role_id: i64 = row.get(3);
 
     self.session_id = session_id;
     self.user_id = user_id;
+    self.role_id = role_id;
     let json: Value = serde_json::from_str(&data).unwrap();
     if let Value::Object(obj) = json {
       for (key, val) in obj {
@@ -712,7 +719,7 @@ impl<'a> Action<'a> {
       }
     }
 
-    let key = format!("auth:{}:{}:{}:{}", self.user_id, module, class, action);
+    let key = format!("auth:{}:{}:{}:{}", self.role_id, module, class, action);
     // Check access in cache
     if let Some(a) = self.cache_get(&key) {
       if let Data::Bool(val) = a {
