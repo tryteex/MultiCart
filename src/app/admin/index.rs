@@ -9,9 +9,9 @@ impl App {
   // Main page
   pub fn index(action: &mut Action, _params: &str, _data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
     if action.get_access("admin", "index", "main") {
-      action.set_redirect("/admin/index/main", false);
+      action.redirect_set("/admin/index/main", false);
     } else {
-      action.set_redirect("/login/admin/index", false);
+      action.redirect_set("/login/admin/index", false);
     }
     
     Answer::None

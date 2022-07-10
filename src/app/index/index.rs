@@ -21,7 +21,7 @@ impl App {
   // Header index
   pub fn head(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     if let Answer::String(a) = action.load("index", "menu", "header", "", data) {
       data.insert("header".to_owned(), Data::String(a));
@@ -32,7 +32,7 @@ impl App {
   // Footer index
   pub fn foot(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     action.out("foot", data)
   }

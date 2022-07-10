@@ -9,7 +9,7 @@ impl App {
   // Header login item
   pub fn menu(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     action.out("menu", data)
   }
@@ -17,7 +17,7 @@ impl App {
   // Sign up
   pub fn up(action: &mut Action, _params: &str, _data: &mut HashMap<String, Data>, _internal: bool) -> Answer {
     if !action.ajax {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     Answer::None
   }

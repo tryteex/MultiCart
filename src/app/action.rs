@@ -466,17 +466,17 @@ impl<'a> Action<'a> {
   }
 
   // Set redirect
-  pub fn set_redirect(&mut self, url: &str, permanently: bool) {
+  pub fn redirect_set(&mut self, url: &str, permanently: bool) {
     self.location = Some(Location {url: format!("Location: {}", url), permanently, });
   }
 
   // Get reditrect
-  pub fn get_redirect(&self) -> Option<&Location> {
+  pub fn redirect_get(&self) -> Option<&Location> {
     self.location.as_ref()
   }
 
   // Get text from http code
-  pub fn get_code(code: u16) -> String {
+  pub fn http_code_get(code: u16) -> String {
     let mut s = String::with_capacity(48);
     s.push_str(&code.to_string());
     match code {
@@ -550,7 +550,7 @@ impl<'a> Action<'a> {
 
   // Session block
   // Get user lang_id
-  pub fn get_lang_id(&self) -> Option<u8> {
+  pub fn lang_id_get(&self) -> Option<u8> {
     let key = "lang_id";
     match self.session_get(key) {
         Some(d) => match d {
@@ -675,7 +675,7 @@ impl<'a> Action<'a> {
   }
 
   // Save session date to database
-  pub fn session_save(&mut self) {
+  fn session_save(&mut self) {
     if self.session_change {
       // if data were chaged then save it
       let mut map = Map::with_capacity(self.session_data.len());
@@ -769,7 +769,7 @@ impl<'a> Action<'a> {
   pub fn set_lang_id(&mut self, lang_id: Option<u8>) {
     let key = "lang_id".to_owned();
     match lang_id {
-      None => match self.get_lang_id() {
+      None => match self.lang_id_get() {
         Some(lang_id) => self.lang_id = lang_id,
         None => {
           let lang_id = DEFAULT_LANG;
@@ -777,7 +777,7 @@ impl<'a> Action<'a> {
           self.lang_id = lang_id;
         },
       },
-      Some(lang_id) => match self.get_lang_id() {
+      Some(lang_id) => match self.lang_id_get() {
         Some(s_lang_id) => {
           let l_id = s_lang_id;
           if l_id != lang_id {
@@ -823,7 +823,7 @@ impl<'a> Action<'a> {
     if let Some(data) = self.cache_get(&key) {
       if let Data::String(r) = data {
         let permanently = if r.starts_with("1") { true } else { false };
-        self.set_redirect(&r[1..], permanently);
+        self.redirect_set(&r[1..], permanently);
         return None;
       }
     } else {
@@ -840,7 +840,7 @@ impl<'a> Action<'a> {
         let c = if code { "1" } else { "0" };
         let permanently = if code { true } else { false };
         let value = format!("{}{}", c, redirect);
-        self.set_redirect(&redirect, permanently);
+        self.redirect_set(&redirect, permanently);
         self.cache_set(key, Data::String(value));
         return None;
       }
@@ -928,7 +928,7 @@ impl<'a> Action<'a> {
     if internal {
       return Answer::String("not_found".to_owned());
     }
-    self.set_redirect("/index/index/not_found", false);
+    self.redirect_set("/index/index/not_found", false);
     Answer::None
   }
 

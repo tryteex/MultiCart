@@ -9,7 +9,7 @@ impl App{
   // Main header
   pub fn header(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     if let Answer::String(a) = action.load("index", "menu", "upper", "", data) {
       data.insert("upper".to_owned(), Data::String(a));
@@ -23,7 +23,7 @@ impl App{
   // Products main menu
   pub fn products(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     action.out("products", data)
   }
@@ -31,7 +31,7 @@ impl App{
   // Main menu
   pub fn list(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     action.out("list", data)
   }
@@ -39,7 +39,7 @@ impl App{
   // Logo + Search + user + cart
   pub fn logo(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     if let Answer::String(a) = action.load("index", "cart", "index", "", data) {
       data.insert("cart".to_owned(), Data::String(a));
@@ -65,7 +65,7 @@ impl App{
   // Upper menu
   pub fn upper(action: &mut Action, _params: &str, data: &mut HashMap<String, Data>, internal: bool) -> Answer {
     if !internal {
-      action.set_redirect("/index/index/not_found", true);
+      action.redirect_set("/index/index/not_found", true);
     }
     action.out("upper", data)
   }

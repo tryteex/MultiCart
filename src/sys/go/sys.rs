@@ -52,17 +52,17 @@ impl Sys {
     let mut answer: Vec<String> = Vec::with_capacity(16);
     answer.push("HTTP/1.1 ".to_owned());
 
-    if let Some(location) = action.get_redirect() {
+    if let Some(location) = action.redirect_get() {
       if location.permanently {
-        answer.push(format!("{}\r\n", Action::get_code(301)));
+        answer.push(format!("{}\r\n", Action::http_code_get(301)));
       } else {
-        answer.push(format!("{}\r\n", Action::get_code(302)));
+        answer.push(format!("{}\r\n", Action::http_code_get(302)));
       }
       answer.push(format!("{}\r\n", location.url));
     } else if let Some(code) = action.http_code {
-      answer.push(format!("{}\r\n", Action::get_code(code)));
+      answer.push(format!("{}\r\n", Action::http_code_get(code)));
     } else {
-      answer.push(format!("{}\r\n", Action::get_code(200)));
+      answer.push(format!("{}\r\n", Action::http_code_get(200)));
     }
     let time = Utc::now() + Duration::seconds(action.set_cookie.time.into());
     let date: String = time.format("%a, %d-%b-%Y %H:%M:%S GMT").to_string();
